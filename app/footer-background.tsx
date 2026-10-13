@@ -85,6 +85,9 @@ export default function FooterBackground() {
     window.addEventListener('scroll', updateTarget, { passive: true });
     // El video se carga entero en memoria (blob): así se puede saltar a cualquier cuadro aunque
     // el servidor no acepte pedidos parciales (Range), como pasa con Cloudflare.
+    // React no escribe el atributo `muted`, y iPhone lo exige para reproducir solo.
+    video.muted = true;
+    video.setAttribute('muted', '');
     let objectUrl = '';
     fetch(VIDEO_SRC)
       .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(String(res.status)))))
@@ -92,8 +95,10 @@ export default function FooterBackground() {
         if (disposed) return;
         objectUrl = URL.createObjectURL(blob);
         video.src = objectUrl;
+        // En iPhone el video no carga datos hasta que se le pide reproducir: lo arrancamos ya.
+        ready();
       })
-      .catch(() => { if (!disposed) video.src = VIDEO_SRC; });
+      .catch(() => { if (!disposed) { video.src = VIDEO_SRC; ready(); } });
 
     return () => {
       disposed = true;

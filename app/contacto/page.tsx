@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { BUSINESS, instagramUrl, whatsappUrl } from '../config';
 import PageShell from '../page-shell';
 import CopyAlias from './copy-alias';
@@ -33,6 +34,7 @@ export default function ContactoPage() {
           <span>Sábados y domingos 10:00 a 22:30</span>
         </div>
       </div>
+      <p className="staff-link">¿Sos de Pura Tinta? <Link href="/panel">Ingresar al panel de pedidos</Link></p>
     </PageShell>
   );
 }

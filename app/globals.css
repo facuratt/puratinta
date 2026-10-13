@@ -14,7 +14,9 @@ a:focus-visible{outline:2px solid currentColor;outline-offset:6px}
 .footer-nav{display:grid;grid-template-columns:max-content max-content;align-items:start;gap:.93vw 1.6vw;margin-top:1.3vw;font-size:1.075vw;line-height:1.35}
 /* Logo original sin modificar: el multiply funde su fondo de papel con el fondo lila del video */
 .logo{position:absolute;left:42.4vw;top:-.9vw;width:13vw}
-.logo img{display:block;width:100%;height:auto;mix-blend-mode:multiply;filter:brightness(1.1)}
+/* Safari no mezcla bien si filter y mix-blend-mode están en el mismo elemento: el contenedor mezcla, la imagen aclara. */
+.logo{mix-blend-mode:multiply}
+.logo img{display:block;width:100%;height:auto;filter:brightness(1.1)}
 .contact{position:absolute;left:74.3vw;top:6.54vw}
 .contact-links{display:flex;flex-direction:column;align-items:flex-start;margin-top:1.45vw;white-space:nowrap}
 .note{margin:1.05vw 0 0;font-size:.733vw;line-height:1.4;white-space:nowrap}

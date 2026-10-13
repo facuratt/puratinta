@@ -4,7 +4,9 @@
 .page .site-nav{position:static;order:0;gap:8px}
 .page .site-nav a{height:40px;padding:0 18px;font-size:15px}
 .page-logo{display:block;width:110px;margin:-14px 0 -14px -14px}
-.page-logo img,.panel-logo{display:block;width:100%;height:auto;mix-blend-mode:multiply;filter:brightness(1.1)}
+/* Logo sin fondo: el contenedor mezcla (multiply) y la imagen se aclara; separados para que funcione en Safari. */
+.page-logo,.panel-logo,.ticket-logo{display:block;mix-blend-mode:multiply}
+.page-logo img,.panel-logo img,.ticket-logo img{display:block;width:100%;height:auto;filter:brightness(1.1)}
 .page-main{max-width:980px;margin:32px auto 0}
 .page-title{margin:18px 0 0;font-size:clamp(28px,3.4vw,52px);line-height:1.1}
 .page .tag,.panel .tag{height:30px;padding:6px 12px;font-size:14px}
@@ -52,6 +54,8 @@ a.contact-item:hover{transform:translateY(-2px)}
 .contact-item .headline{font-size:clamp(20px,2vw,28px)}
 .contact-item .contact-ig{font-size:clamp(16px,1.6vw,24px);overflow-wrap:anywhere}
 .contact-soon{line-height:1.45}
+.staff-link{margin:40px 0 0;font-size:13px;opacity:.6}
+.staff-link a{text-decoration:underline}
 .alias-copy{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:0;border:0;background:none;font:inherit;text-align:left;cursor:pointer}
 
 /* ---------- Ticket ---------- */
@@ -61,7 +65,7 @@ a.contact-item:hover{transform:translateY(-2px)}
   mask:linear-gradient(#000 0 0) top/100% calc(100% - 8px) no-repeat,radial-gradient(circle at 50% 100%,transparent 4px,#000 4.5px) bottom/12px 8px repeat-x}
 .ticket p{margin:2px 0}
 .ticket-head{text-align:center}
-.ticket-head img{display:block;width:110px;height:auto;margin:-10px auto -6px;mix-blend-mode:multiply;filter:brightness(1.1)}
+.ticket-logo{width:110px;margin:-10px auto -6px}
 .ticket-kind{text-transform:uppercase;letter-spacing:.12em;font-size:11px}
 .ticket-code{font-family:Epilogue,Arial,sans-serif;font-weight:900;font-size:26px;letter-spacing:.02em}
 .ticket-rule{margin:10px 0;border-top:1.5px dashed var(--foreground)}
