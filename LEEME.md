@@ -6,8 +6,11 @@
 - La web es 100% estática. Pedidos, archivos, usuarios y el aviso por email viven en Supabase.
 
 ## Publicación (GitHub + Cloudflare)
-Esta carpeta está conectada al repositorio github.com/facuratt/puratinta. Cloudflare (Worker `puratinta`)
-toma el código de GitHub, lo compila (`npm run build`) y publica la carpeta `out/` (ver `wrangler.jsonc`).
+Dirección de la web: **https://puratinta.pages.dev** (proyecto de Cloudflare Pages `puratinta`).
+Esta carpeta está conectada al repositorio github.com/facuratt/puratinta. Cloudflare Pages toma el código
+de GitHub, lo compila (`npm run build`) y publica la carpeta `out/`.
+(También existe el Worker `puratinta` en puratinta.facurattaro.workers.dev, que publica lo mismo;
+se puede borrar desde Cloudflare si no se usa.)
 
 Para publicar una corrección, desde esta carpeta:
 ```
