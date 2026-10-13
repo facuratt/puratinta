@@ -1,0 +1,65 @@
+@font-face{font-family:'DM Sans';src:url('/fonts/DMSans-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Epilogue;src:url('/fonts/Epilogue-Black.woff2') format('woff2');font-weight:900;font-style:normal;font-display:swap}
+:root{--background:#dfe4f2;--foreground:#080909;font-family:'DM Sans',Arial,sans-serif;font-weight:400;color:var(--foreground);background:var(--background);font-synthesis:none}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh}
+a{color:inherit;text-decoration:none}
+a:focus-visible{outline:2px solid currentColor;outline-offset:6px}
+.footer{position:relative;min-height:100vh;padding-top:6.54vw}
+.jobs{margin-left:8.65vw;width:25vw}
+.tag{display:inline-flex;align-items:center;border-radius:100px;background:#f7f8fa;padding:.39vw .61vw;font-size:.88vw;line-height:1.2;height:1.9vw;white-space:nowrap}
+.headline{font-family:Epilogue,Arial,sans-serif;font-weight:900;font-size:1.66vw;line-height:1.2;letter-spacing:0}
+.job-title{display:block;margin-top:1.45vw}
+/* Horarios: día | hora en dos columnas */
+.footer-nav{display:grid;grid-template-columns:max-content max-content;align-items:start;gap:.93vw 1.6vw;margin-top:1.3vw;font-size:1.075vw;line-height:1.35}
+/* Logo original sin modificar: el multiply funde su fondo de papel con el fondo lila del video */
+.logo{position:absolute;left:42.4vw;top:-.9vw;width:13vw}
+.logo img{display:block;width:100%;height:auto;mix-blend-mode:multiply;filter:brightness(1.1)}
+.contact{position:absolute;left:74.3vw;top:6.54vw}
+.contact-links{display:flex;flex-direction:column;align-items:flex-start;margin-top:1.45vw;white-space:nowrap}
+.note{margin:1.05vw 0 0;font-size:.733vw;line-height:1.4;white-space:nowrap}
+.socials{display:flex;align-items:center;gap:1.43vw;margin-top:1.61vw}
+.socials a{display:flex;align-items:center;gap:.6vw}
+.site-nav{position:absolute;left:8.65vw;top:2vw;display:flex;gap:.5vw;z-index:1}
+.site-nav a{display:inline-flex;align-items:center;height:2.2vw;padding:0 1vw;border-radius:100px;background:#f7f8fa;font-size:.95vw;white-space:nowrap;transition:background .15s,color .15s}
+.site-nav a:hover{background:#fff}
+.site-nav a.is-active{background:var(--foreground);color:#f7f8fa}
+.pill-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 22px;border:0;border-radius:100px;background:var(--foreground);color:#f7f8fa;font:inherit;font-size:16px;cursor:pointer;white-space:nowrap;transition:transform .15s}
+.pill-button:hover{transform:translateY(-1px)}
+.pill-button:disabled{opacity:.6;cursor:wait;transform:none}
+.pill-light{background:#f7f8fa;color:var(--foreground)}
+.hero-cta{margin-top:1.3vw;min-height:2.6vw;padding:0 1.3vw;font-size:.95vw}
+.socials img{display:block;width:1.71vw;height:1.71vw}
+.whatsapp-number{font-family:Epilogue,Arial,sans-serif;font-weight:900;font-size:1.2vw;line-height:1}
+
+.footer{isolation:isolate;overflow:hidden}
+.footer-background{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.footer-background video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+
+@media(max-width:700px){
+  :root{--background:#f0eefa;background:var(--background)}
+  body{background:var(--background)}
+  .footer{display:flex;flex-direction:column;gap:36px;min-height:100svh;padding:40px 24px 0;background:var(--background)}
+  .logo{position:static;order:0;align-self:center;width:210px;max-width:75%;margin:-16px 0 -28px}
+  .jobs{order:1;margin:0;width:100%}
+  .tag{height:30px;padding:6px 11px;font-size:14px}
+  .headline{font-size:clamp(22px,6.3vw,30px);line-height:1.25}
+  .job-title,.contact-links{margin-top:19px}
+  .footer-nav{grid-template-columns:auto 1fr;gap:0 24px;margin-top:20px;font-size:17px;line-height:1.4}
+  .footer-nav span{display:flex;align-items:center;min-height:44px}
+  .footer-nav span:nth-child(even){white-space:nowrap}
+  @media(max-width:360px){.footer-nav{gap:0 14px;font-size:15px}}
+  .contact{position:static;order:2;width:100%}
+  .contact-links{gap:4px;white-space:normal}
+  .note{max-width:34ch;margin:16px 0 0;font-size:14px;line-height:1.5;white-space:normal}
+  .socials{gap:18px;margin-top:20px}
+  .socials a{gap:10px;min-height:44px}
+  .socials a:first-child{margin-left:-7px}
+  .socials img{width:30px;height:30px;margin:7px}
+  .whatsapp-number{font-size:22px}
+  .site-nav{position:static;order:-1;flex-wrap:wrap;gap:8px}
+  .site-nav a{height:38px;padding:0 16px;font-size:15px}
+  .hero-cta{margin-top:20px;min-height:48px;padding:0 24px;font-size:16px}
+  .footer-background{position:relative;inset:auto;order:3;z-index:auto;flex:none;align-self:center;width:calc(100% + 48px);aspect-ratio:4/3;margin-top:-16px}
+  .footer-background video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+}
