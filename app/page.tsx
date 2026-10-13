@@ -19,8 +19,8 @@ export default function Home() {
         </div>
       </div>
       <div className="logo" role="img" aria-label="Impresiones Pura Tinta">
-        {/* Logo original, sin modificaciones. */}
-        <img src="/logo-pura-tinta.webp" alt="" width="1254" height="1254" />
+        {/* Logo original con el fondo de papel quitado (PNG transparente). */}
+        <img src="/logo-pura-tinta.png" alt="" width="1254" height="1254" />
       </div>
       <div className="contact">
         <span className="tag">fotocopias B/N</span>

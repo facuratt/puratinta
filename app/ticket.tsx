@@ -17,7 +17,7 @@ export default function Ticket({ order, variant, className = '' }: Props) {
   return (
     <div className={`ticket ${className}`}>
       <div className="ticket-head">
-        <span className="ticket-logo"><img src="/logo-pura-tinta.webp" alt="Pura Tinta" width="120" height="120" /></span>
+        <span className="ticket-logo"><img src="/logo-pura-tinta.png" alt="Pura Tinta" width="120" height="120" /></span>
         <p className="ticket-kind">{variant === 'cliente' ? 'comprobante de pedido' : 'orden de trabajo'}</p>
         <p className="ticket-code">{orderCode(order.number)}</p>
         <p>{date.toLocaleDateString('es-AR')} · {date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</p>

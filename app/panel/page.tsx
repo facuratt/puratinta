@@ -94,7 +94,7 @@ export default function PanelPage() {
   if (!session) {
     return (
       <div className="panel panel-login">
-        <span className="panel-logo"><img src="/logo-pura-tinta.webp" alt="Pura Tinta" width="160" height="160" /></span>
+        <span className="panel-logo"><img src="/logo-pura-tinta.png" alt="Pura Tinta" width="160" height="160" /></span>
         <h1 className="headline">panel de pedidos</h1>
         <form onSubmit={login} className="fields">
           <label>Email<input name="email" type="email" required autoComplete="username" /></label>
@@ -122,7 +122,7 @@ export default function PanelPage() {
   return (
     <div className="panel">
       <header className="panel-header">
-        <span className="panel-logo"><img src="/logo-pura-tinta.webp" alt="Pura Tinta" width="80" height="80" /></span>
+        <span className="panel-logo"><img src="/logo-pura-tinta.png" alt="Pura Tinta" width="80" height="80" /></span>
         <h1 className="headline">pedidos</h1>
         {newCount > 0 && <span className="tag panel-new">{newCount} nuevo{newCount > 1 ? 's' : ''} desde que abriste</span>}
         <button className="pill-button pill-light" onClick={() => supabase.auth.signOut()}>salir</button>

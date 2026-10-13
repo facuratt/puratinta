@@ -4,9 +4,8 @@
 .page .site-nav{position:static;order:0;gap:8px}
 .page .site-nav a{height:40px;padding:0 18px;font-size:15px}
 .page-logo{display:block;width:110px;margin:-14px 0 -14px -14px}
-/* Logo sin fondo: el contenedor mezcla (multiply) y la imagen se aclara; separados para que funcione en Safari. */
-.page-logo,.panel-logo,.ticket-logo{display:block;mix-blend-mode:multiply}
-.page-logo img,.panel-logo img,.ticket-logo img{display:block;width:100%;height:auto;filter:brightness(1.1)}
+.page-logo,.panel-logo,.ticket-logo{display:block}
+.page-logo img,.panel-logo img,.ticket-logo img{display:block;width:100%;height:auto}
 .page-main{max-width:980px;margin:32px auto 0}
 .page-title{margin:18px 0 0;font-size:clamp(28px,3.4vw,52px);line-height:1.1}
 .page .tag,.panel .tag{height:30px;padding:6px 12px;font-size:14px}

@@ -8,7 +8,7 @@ export default function PageShell({ tag, title, children }: { tag: string; title
     <div className="page">
       <header className="page-header">
         <Link href="/" className="page-logo" aria-label="Pura Tinta — inicio">
-          <img src="/logo-pura-tinta.webp" alt="" width="1254" height="1254" />
+          <img src="/logo-pura-tinta.png" alt="" width="1254" height="1254" />
         </Link>
         <SiteNav />
       </header>
