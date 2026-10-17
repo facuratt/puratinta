@@ -111,7 +111,7 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
       ctx.clearRect(x - 2, y - 2, w + 4, h + 4);
       ctx.globalAlpha = 1;
       ctx.drawImage(fa, x, y, w, h);
-      const fb = !lite && t > 0.004 ? nearest((a + 1) % n) : null;
+      const fb = t > 0.004 ? nearest((a + 1) % n) : null;
       if (fb && fb !== fa) { ctx.globalAlpha = t; ctx.drawImage(fb, x, y, w, h); ctx.globalAlpha = 1; }
       feather(ctx, x, y, w, h, layout.s, { l: 36, r: 36, t: 8, b: 30 });
     };
@@ -197,7 +197,7 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
       const needW = meta.crop[2] * probe.s * dpr;
       const tiers = [...meta.sizes].sort((a, b) => a - b);
       const tier = lite ? tiers[0] : (tiers.find((w) => w >= needW * 0.95) || tiers[tiers.length - 1]);
-      const budget = (lite ? 140 : matchMedia('(pointer: coarse)').matches ? 240 : 600) * 1e6;
+      const budget = (lite ? 200 : matchMedia('(pointer: coarse)').matches ? 260 : 600) * 1e6;
       const aspect = meta.crop[3] / meta.crop[2];
       const fitW = Math.floor(Math.sqrt(budget / (n * 4 * aspect)));
       const bmpW = Math.round(Math.min(tier, Math.max(needW, 320), fitW));
@@ -213,7 +213,7 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
         if (layout) drawPlate();
       }, () => {});
 
-      const order = loadOrder(n, lite ? 2 : 1);
+      const order = loadOrder(n, 1);
       let done = 0;
       let cursor = 0;
       const worker = async () => {

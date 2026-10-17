@@ -30,22 +30,28 @@ export function setTier(t: Tier, persist = true) {
 }
 
 let watching = false;
-/** Mide los cuadros de los primeros ~4 s; si el p75 supera ~30 ms, pasa a liviano (solo en modo automático). */
+/**
+ * Mide la fluidez real cuando la página ya terminó de cargar (las imágenes de los personajes se decodifican
+ * al principio y eso no cuenta). Si durante ~3 s el p75 supera ~40 ms, pasa a liviano (solo en modo automático).
+ */
 export function watchFrames() {
   if (watching || typeof window === 'undefined') return;
   watching = true;
-  if (document.documentElement.dataset.perfAuto !== '1' || getTier() === 'low') return;
-  const samples: number[] = [];
-  let last = performance.now();
-  const start = last;
-  const step = (now: number) => {
-    samples.push(now - last);
-    last = now;
-    if (now - start < 4200) { requestAnimationFrame(step); return; }
-    if (document.hidden || samples.length < 30) return;
-    const sorted = samples.slice(10).sort((a, b) => a - b);
-    const p75 = sorted[Math.floor(sorted.length * 0.75)];
-    if (p75 > 30) setTier('low', false);
-  };
-  requestAnimationFrame(step);
+  const begin = () => window.setTimeout(() => {
+    if (document.documentElement.dataset.perfAuto !== '1' || getTier() === 'low' || document.hidden) return;
+    const samples: number[] = [];
+    let last = performance.now();
+    const start = last;
+    const step = (now: number) => {
+      samples.push(now - last);
+      last = now;
+      if (now - start < 3000) { requestAnimationFrame(step); return; }
+      if (document.hidden || samples.length < 30) return;
+      const sorted = samples.slice(5).sort((a, b) => a - b);
+      const p75 = sorted[Math.floor(sorted.length * 0.75)];
+      if (p75 > 40) setTier('low', false);
+    };
+    requestAnimationFrame(step);
+  }, 2500);
+  if (document.readyState === 'complete') begin(); else window.addEventListener('load', begin, { once: true });
 }
