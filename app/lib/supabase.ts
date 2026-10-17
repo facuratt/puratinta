@@ -17,6 +17,7 @@ export type OrderFile = {
   copies: number;
   sides: Sides;
   subtotal: number;
+  deleted_at?: string | null;
 };
 
 export type Order = {
