@@ -6,7 +6,6 @@ import '@fontsource-variable/jetbrains-mono/index.css';
 import './globals.css';
 import AppEffects from './components/AppEffects';
 import SiteChrome from './components/SiteChrome';
-import { PERF_SCRIPT } from './lib/perf';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://puratinta.pages.dev'),
@@ -31,9 +30,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es-AR" data-perf="high" suppressHydrationWarning>
+    <html lang="es-AR" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: PERF_SCRIPT }} />
         <link rel="preload" as="image" href="/girl/g00.webp" fetchPriority="high" />
       </head>
       <body>

@@ -9,7 +9,7 @@ export default function PageHead({ eyebrow, title, lede, icons, tone = 'paper' }
 }) {
   const ref = useRef<HTMLElement>(null);
   const move = (e: PointerEvent<HTMLElement>) => {
-    if (e.pointerType !== 'mouse' || document.documentElement.dataset.perf === 'low') return;
+    if (e.pointerType !== 'mouse') return;
     const r = ref.current!.getBoundingClientRect();
     ref.current!.style.setProperty('--mx', `${((e.clientX - r.left) / r.width - 0.5).toFixed(3)}`);
     ref.current!.style.setProperty('--my', `${((e.clientY - r.top) / r.height - 0.5).toFixed(3)}`);

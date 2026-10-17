@@ -7,7 +7,6 @@ import type { Session } from '@supabase/supabase-js';
 import { Icon3D, LogOut, Search, WhatsAppGlyph, Download, Printer, Trash } from '../components/icons';
 import Ticket from '../components/Ticket';
 import { DEFAULT_SETTINGS, formatMoney, STATUS_LABELS, type DayHours, type SiteSettings } from '../lib/config';
-import { getTier, setTier } from '../lib/perf';
 import { invalidateLive, useLive } from '../lib/settings';
 import { play } from '../lib/sound';
 import { BUCKET, orderCode, orderFiles, supabase, type Order } from '../lib/supabase';
@@ -449,8 +448,6 @@ function MaintenancePane({ say, orders, reload }: { say: (t: string) => void; or
   const [stats, setStats] = useState<{ files: number; bytes: number; orders: number; orders_total: number } | null>(null);
   const [mail, setMail] = useState<string>('…');
   const [busy, setBusy] = useState(false);
-  const [lite, setLite] = useState(false);
-  useEffect(() => { setLite(getTier() === 'low'); }, []);
 
   const refresh = useCallback(() => {
     supabase.rpc('admin_storage_stats').then(({ data }) => setStats(data as typeof stats));
@@ -505,7 +502,6 @@ function MaintenancePane({ say, orders, reload }: { say: (t: string) => void; or
       </div>
       <div className="pcard">
         <h2><Icon3D name="pen" size={48} /> Herramientas</h2>
-        <Switch on={lite} set={(v) => { setLite(v); setTier(v ? 'low' : 'high'); }} label="Modo liviano en este equipo" hint="Menos animación para computadoras lentas." />
         <div className="links">
           <a href="https://supabase.com/dashboard/project/fhziyblckvrnnwiwvhie" target="_blank" rel="noopener noreferrer">Supabase (base de datos y archivos) ↗</a>
           <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer">Cloudflare (publicación y dominio) ↗</a>

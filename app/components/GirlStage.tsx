@@ -11,7 +11,6 @@ import {
   TAU_PARALLAX,
   type Side,
 } from '../lib/girlGaze';
-import {getTier, onTierChange} from '../lib/perf';
 import {useReducedMotion} from '../hooks/useReducedMotion';
 
 const SRC_W = 1280;
@@ -104,8 +103,6 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
     if (!ctx) return;
 
     let alive = true;
-    let lite = getTier() === 'low';
-    const offTier = onTierChange((t) => { lite = t === 'low'; relayout(); });
     let frames: HTMLImageElement[] = [];
     let hasPainted = false;
 
@@ -130,6 +127,8 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
     // --- layout ---------------------------------------------------------
     let W = 0;
     let H = 0;
+    let docX = 0; // esquina del héroe en coordenadas del documento
+    let docY = 0;
     let dpr = 1;
     let fit: Fit = {s: 1, dx: 0, dy: 0};
     let bg: string | CanvasGradient = TOP_PROFILE[0];
@@ -295,12 +294,10 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
 
       paint(Math.min(FRAME_COUNT - 1, Math.max(0, Math.round(cur))));
 
-      const amt = lite ? 0.35 : 1;
       layer.style.transform =
-        `translate3d(${(px * SHIFT_X * amt).toFixed(2)}px, ${(py * SHIFT_Y * amt).toFixed(2)}px, 0)` +
-        ` rotate(${(px * TILT * amt).toFixed(3)}deg) scale(${OVERSCAN})`;
-      host.style.setProperty('--gaze-x', ((px + 1) / 2).toFixed(4));
-      host.dataset.side = side;
+        `translate3d(${(px * SHIFT_X).toFixed(2)}px, ${(py * SHIFT_Y).toFixed(2)}px, 0)` +
+        ` rotate(${(px * TILT).toFixed(3)}deg) scale(${OVERSCAN})`;
+      if (host.dataset.side !== side) host.dataset.side = side;
 
       const settled =
         !autopilotOn &&
@@ -330,10 +327,11 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
       // has scrolled away. Nothing below the fold is worth a repaint.
       if (!onScreen) return;
       autopilotOn = false;
-      const r = host.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      const nx = (e.clientX - r.left) / r.width;
-      const ny = (e.clientY - r.top) / r.height;
+      // Posición cacheada (se mide al redimensionar): leer el layout en cada movimiento del mouse
+      // obliga al navegador a recalcular la página en medio de la animación.
+      if (!W || !H) return;
+      const nx = (e.clientX - (docX - window.scrollX)) / W;
+      const ny = (e.clientY - (docY - window.scrollY)) / H;
       side = nextSide(nx, side);
       target = frameForPointer(nx, side);
       tpx = Math.max(-1, Math.min(1, nx * 2 - 1));
@@ -358,11 +356,14 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
     // --- sizing ---------------------------------------------------------
     const relayout = () => {
       const r = host.getBoundingClientRect();
-      // Capping DPR at 2 keeps fill rate sane on 3x phones; at this scale
-      // the extra samples are invisible on a soft-shaded render.
-      dpr = Math.min(window.devicePixelRatio || 1, getTier() === 'low' ? 1 : 2);
       W = r.width;
       H = r.height;
+      docX = r.left + window.scrollX;
+      docY = r.top + window.scrollY;
+      fit = computeFit();
+      // El clip mide 1280x720: dibujarlo a más píxeles que los que tiene no suma detalle, solo trabajo.
+      // Por eso el lienzo nunca supera 1 píxel de origen por píxel real (y como mucho 2x en pantallas chicas).
+      dpr = Math.max(0.5, Math.min(window.devicePixelRatio || 1, 2, 1 / Math.max(fit.s, 1e-3)));
 
       const w = Math.max(1, Math.round(W * OVERSCAN * dpr));
       const h = Math.max(1, Math.round(H * OVERSCAN * dpr));
@@ -370,10 +371,10 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
         canvas.width = w;
         canvas.height = h;
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        // El lienzo nunca agranda el clip (ver dpr): bilineal se ve igual y es mucho más barato por cuadro.
+        ctx.imageSmoothingQuality = 'low';
       }
 
-      fit = computeFit();
       buildBackground();
       dirty = true;
       // Resizing blanks the backing store, so repaint now rather than
@@ -390,6 +391,13 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
       if (el) ro.observe(el);
     }
     relayout();
+    // Si algo de arriba cambia de alto (aviso, fuentes), solo re-medimos dónde quedó el héroe.
+    const bodyRo = new ResizeObserver(() => {
+      const r = host.getBoundingClientRect();
+      docX = r.left + window.scrollX;
+      docY = r.top + window.scrollY;
+    });
+    bodyRo.observe(document.body);
 
     // The webfont lands after first paint and changes the wordmark's width.
     document.fonts?.ready.then(() => {
@@ -423,9 +431,9 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
     return () => {
       alive = false;
       running = false;
-      offTier();
       cancelAnimationFrame(rafId);
       ro.disconnect();
+      bodyRo.disconnect();
       io.disconnect();
       window.removeEventListener('pointermove', onPointer);
       document.documentElement.removeEventListener('pointerleave', onLeaveWindow);
@@ -433,12 +441,11 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
   }, [reduced, bounds]);
 
   return (
-    <div ref={hostRef} className="girl-stage" style={{['--gaze-x' as string]: '0.5'}} aria-hidden="true">
+    <div ref={hostRef} className="girl-stage" aria-hidden="true">
       <div ref={layerRef} className="girl-stage__layer">
         <canvas ref={canvasRef} className="girl-stage__canvas" style={{opacity: painted ? 1 : 0}} />
       </div>
-      {/* Luz que sigue la mirada y viñeta tomada del propio clip. */}
-      <div className="girl-stage__light" />
+      {/* Viñeta tomada del propio clip (estática). */}
       <div className="girl-stage__vignette" />
     </div>
   );

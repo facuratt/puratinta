@@ -4,22 +4,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { BUSINESS, formatMoney, whatsappUrl } from '../lib/config';
 import { openStatus } from '../lib/hours';
-import { getTier, onTierChange, setTier, type Tier } from '../lib/perf';
 import { useLive } from '../lib/settings';
-import { ArrowUpRight, Bolt, InstagramGlyph, Lock, WhatsAppGlyph } from './icons';
+import { ArrowUpRight, InstagramGlyph, Lock, WhatsAppGlyph } from './icons';
 import { SoundToggle } from './TopBar';
-
-export function LiteToggle() {
-  const [tier, setT] = useState<Tier>('high');
-  useEffect(() => { setT(getTier()); return onTierChange(setT); }, []);
-  const lite = tier === 'low';
-  return (
-    <button type="button" className={`switch-btn${lite ? ' is-on' : ''}`} aria-pressed={lite} data-sfx="toggle"
-      onClick={() => setTier(lite ? 'high' : 'low')} title="Menos animación, ideal para equipos lentos o datos móviles">
-      <Bolt /> Modo liviano <span className="switch-btn__pill" aria-hidden="true"><i /></span>
-    </button>
-  );
-}
 
 export default function Footer() {
   const { settings, prices } = useLive();
@@ -68,8 +55,8 @@ export default function Footer() {
           <h3>Contacto</h3>
           <a href={whatsappUrl('Hola Pura Tinta! 👋')} target="_blank" rel="noopener noreferrer" className="footer__social"><WhatsAppGlyph /> {BUSINESS.whatsappDisplay}</a>
           <a href={BUSINESS.instagramUrl} target="_blank" rel="noopener noreferrer" className="footer__social"><InstagramGlyph /> @{BUSINESS.instagram}</a>
-          <h3 className="mt">Preferencias</h3>
-          <div className="footer__prefs"><SoundToggle className="icon-btn--label" /><LiteToggle /></div>
+          <h3 className="mt">Sonido</h3>
+          <div className="footer__prefs"><SoundToggle className="icon-btn--label" /></div>
         </div>
       </div>
 

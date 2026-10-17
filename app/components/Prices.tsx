@@ -10,7 +10,7 @@ import { ArrowUpRight, Icon3D } from './icons';
 function Tilt({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const move = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse' || document.documentElement.dataset.perf === 'low') return;
+    if (e.pointerType !== 'mouse') return;
     const r = ref.current!.getBoundingClientRect();
     ref.current!.style.setProperty('--rx', `${((e.clientY - r.top) / r.height - 0.5) * -10}deg`);
     ref.current!.style.setProperty('--ry', `${((e.clientX - r.left) / r.width - 0.5) * 12}deg`);

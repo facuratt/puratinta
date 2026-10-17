@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import type { TintoEngine, TintoMeta } from '../lib/tintoEngine';
-import { getTier } from '../lib/perf';
 
 // Escenario de Tinto (portado de pouterby/Stage): fondo extendido y desenfocado + backdrop,
 // y encima el recorte animado, con fundido de bordes y crossfade entre cuadros.
@@ -62,7 +61,26 @@ const loadImage = (src: string) => {
   return img.decode().then(() => img);
 };
 
-type Frame = HTMLImageElement | ImageBitmap;
+type Frame = HTMLImageElement | ImageBitmap | HTMLCanvasElement;
+
+/** Escala el cuadro una vez y le hornea el fundido de bordes, así cada repintado es un solo drawImage. */
+async function bake(img: HTMLImageElement, w: number, h: number, s: number): Promise<Frame> {
+  try {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d')!;
+    x.imageSmoothingEnabled = true;
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(img, 0, 0, w, h);
+    feather(x, 0, 0, w, h, s, { l: 36, r: 36, t: 8, b: 30 });
+    if ('createImageBitmap' in window) {
+      try { return await createImageBitmap(c); } catch { /* el canvas sirve igual */ }
+    }
+    return c;
+  } catch {
+    return img;
+  }
+}
 
 export default function TintoStage({ engine, onProgress }: { engine: TintoEngine; onProgress?: (p: number) => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -75,7 +93,8 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
     const plateCanvas = plateRef.current!;
     const ctx = canvas.getContext('2d')!;
     const pctx = plateCanvas.getContext('2d', { alpha: false })!;
-    const lite = getTier() === 'low';
+    const coarse = matchMedia('(pointer: coarse)').matches;
+    let docLeft = 0, docTop = 0; // posición del escenario en el documento (se mide solo al redimensionar)
     let cancelled = false;
     let started = false;
     let meta: TintoMeta | null = null;
@@ -97,6 +116,8 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
       return null;
     };
 
+    // El lienzo animado mide solo lo que ocupa el recorte (no toda la sección): cada cuadro
+    // sube a la placa de video una textura chica en vez de una del tamaño de la pantalla.
     const draw = (force: boolean) => {
       if (!meta || !crop || !layout) return;
       const f = engine.f;
@@ -107,13 +128,17 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
       const fa = nearest(a);
       if (!fa) return;
       lastF = f;
-      const { x, y, w, h } = crop;
-      ctx.clearRect(x - 2, y - 2, w + 4, h + 4);
+      const W = canvas.width, H = canvas.height;
+      // Casi en un cuadro entero: se dibuja uno solo. En el medio: fundido entre los dos vecinos.
+      const fb = t > 0.02 ? nearest((a + 1) % n) : null;
       ctx.globalAlpha = 1;
-      ctx.drawImage(fa, x, y, w, h);
-      const fb = !lite && t > 0.004 ? nearest((a + 1) % n) : null;
-      if (fb && fb !== fa) { ctx.globalAlpha = t; ctx.drawImage(fb, x, y, w, h); ctx.globalAlpha = 1; }
-      feather(ctx, x, y, w, h, layout.s, { l: 36, r: 36, t: 8, b: 30 });
+      ctx.clearRect(0, 0, W, H);
+      if (fb && fb !== fa && t >= 0.98) ctx.drawImage(fb, 0, 0, W, H);
+      else {
+        ctx.drawImage(fa, 0, 0, W, H);
+        if (fb && fb !== fa) { ctx.globalAlpha = t; ctx.drawImage(fb, 0, 0, W, H); ctx.globalAlpha = 1; }
+      }
+      // El fundido de bordes ya viene horneado en cada cuadro (ver bake): acá solo se copian píxeles.
     };
 
     const drawPlate = () => {
@@ -149,11 +174,16 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
       }
     };
 
+    const measureDoc = () => {
+      const rect = wrap.getBoundingClientRect();
+      docLeft = rect.left + window.scrollX;
+      docTop = rect.top + window.scrollY;
+    };
+    // Sin lecturas de layout en el scroll: solo restamos el desplazamiento.
     const placeHead = () => {
       if (!meta || !layout) return;
-      const rect = wrap.getBoundingClientRect();
-      engine.head.x = rect.left + layout.dx + meta.head[0] * layout.s;
-      engine.head.y = rect.top + layout.dy + meta.head[1] * layout.s;
+      engine.head.x = docLeft - window.scrollX + layout.dx + meta.head[0] * layout.s;
+      engine.head.y = docTop - window.scrollY + layout.dy + meta.head[1] * layout.s;
     };
 
     const resize = () => {
@@ -161,23 +191,31 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
       const cw = wrap.clientWidth;
       const ch = wrap.clientHeight;
       layout = computeLayout(cw, ch, meta);
-      const dpr = Math.min(window.devicePixelRatio || 1, 1 / layout.s, lite ? 1 : 2);
-      for (const [c, x] of [[canvas, ctx], [plateCanvas, pctx]] as const) {
-        c.width = Math.round(cw * dpr);
-        c.height = Math.round(ch * dpr);
-        x.setTransform(dpr, 0, 0, dpr, 0, 0);
-        x.imageSmoothingEnabled = true;
-        x.imageSmoothingQuality = 'high';
-      }
+      const dpr = Math.max(0.5, Math.min(window.devicePixelRatio || 1, 1 / layout.s, 2));
+      plateCanvas.width = Math.round(cw * dpr);
+      plateCanvas.height = Math.round(ch * dpr);
+      pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      pctx.imageSmoothingEnabled = true;
+      pctx.imageSmoothingQuality = 'high';
       size = { cw, ch };
       const [cx, cy, cwid, chei] = meta.crop;
       crop = { x: layout.dx + cx * layout.s, y: layout.dy + cy * layout.s, w: cwid * layout.s, h: chei * layout.s };
+      canvas.width = Math.max(1, Math.round(crop.w * dpr));
+      canvas.height = Math.max(1, Math.round(crop.h * dpr));
+      Object.assign(canvas.style, { left: `${crop.x}px`, top: `${crop.y}px`, width: `${crop.w}px`, height: `${crop.h}px` });
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'low'; // los cuadros ya vienen escalados a medida: bilineal alcanza
       drawPlate();
+      measureDoc();
       placeHead();
       draw(true);
     };
 
     const ro = new ResizeObserver(resize);
+    // Si cambia algo arriba (fuentes, imágenes), la sección se corre: volvemos a medir su posición.
+    const bodyRo = new ResizeObserver(() => { measureDoc(); placeHead(); });
+    bodyRo.observe(document.body);
 
     // Carga perezosa: recién cuando la sección se acerca a la pantalla.
     const boot = async () => {
@@ -193,27 +231,28 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
       const n = meta.count;
       frames = new Array(n).fill(null);
       const probe = computeLayout(wrap.clientWidth, wrap.clientHeight, meta);
-      const dpr = Math.min(window.devicePixelRatio || 1, lite ? 1 : 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const needW = meta.crop[2] * probe.s * dpr;
       const tiers = [...meta.sizes].sort((a, b) => a - b);
-      const tier = lite ? tiers[0] : (tiers.find((w) => w >= needW * 0.95) || tiers[tiers.length - 1]);
-      const budget = (lite ? 140 : matchMedia('(pointer: coarse)').matches ? 240 : 600) * 1e6;
+      const tier = tiers.find((w) => w >= needW * 0.95) || tiers[tiers.length - 1];
+      const budget = (coarse ? 220 : 380) * 1e6;
       const aspect = meta.crop[3] / meta.crop[2];
       const fitW = Math.floor(Math.sqrt(budget / (n * 4 * aspect)));
-      const bmpW = Math.round(Math.min(tier, Math.max(needW, 320), fitW));
+      const bmpW = Math.round(Math.min(tier, Math.max(needW, 240), fitW));
       const bmpH = Math.round(bmpW * aspect);
+      const cropW = meta.crop[2];
 
       ro.observe(wrap);
       resize();
 
-      const bdSrc = meta.backdrop[!lite && probe.s * meta.width * dpr > 1400 ? '1920' : '1280'];
+      const bdSrc = meta.backdrop[probe.s * meta.width * dpr > 1400 ? '1920' : '1280'];
       Promise.all([loadImage(`${BASE}${meta.plate.src}`), loadImage(`${BASE}${bdSrc}`)]).then(([p, b]) => {
         if (cancelled) return;
         plate = p; backdrop = b;
         if (layout) drawPlate();
       }, () => {});
 
-      const order = loadOrder(n, lite ? 2 : 1);
+      const order = loadOrder(n, 1);
       let done = 0;
       let cursor = 0;
       const worker = async () => {
@@ -221,10 +260,7 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
           const i = order[cursor++];
           let img: HTMLImageElement;
           try { img = await loadImage(`${BASE}${tier}/${String(i).padStart(3, '0')}.webp`); } catch { continue; }
-          let bmp: Frame = img;
-          if ('createImageBitmap' in window) {
-            try { bmp = await createImageBitmap(img, { resizeWidth: bmpW, resizeHeight: bmpH, resizeQuality: lite ? 'medium' : 'high' }); } catch { bmp = img; }
-          }
+          const bmp: Frame = await bake(img, bmpW, bmpH, bmpW / cropW);
           if (cancelled) { (bmp as ImageBitmap).close?.(); return; }
           frames[i] = bmp;
           done++;
@@ -233,20 +269,21 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
           if (done === 1) wrap.classList.add('is-ready');
         }
       };
-      await Promise.all(Array.from({ length: lite ? 3 : 6 }, worker));
+      await Promise.all(Array.from({ length: coarse ? 4 : 6 }, worker));
     };
 
     const layers = wrap.firstElementChild as HTMLElement;
+    let lastT = '';
     const unsub = engine.subscribe((e) => {
       draw(false);
-      const k = lite ? 0.4 : 1;
-      layers.style.transform = `translate3d(${(-e.parallax.x * 10 * k).toFixed(2)}px, ${(-e.parallax.y * 7 * k).toFixed(2)}px, 0) scale(1.035)`;
+      const tr = `translate3d(${(-e.parallax.x * 10).toFixed(1)}px, ${(-e.parallax.y * 7).toFixed(1)}px, 0) scale(1.035)`;
+      if (tr !== lastT) layers.style.transform = lastT = tr;
     });
 
     const near = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) void boot(); }, { rootMargin: '120% 0px' });
     near.observe(wrap);
     const vis = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { placeHead(); engine.start(); } else engine.stop();
+      if (entry.isIntersecting) { measureDoc(); placeHead(); engine.start(); } else engine.stop();
     }, { threshold: 0 });
     vis.observe(wrap);
     const onScroll = () => { if (engine.running) placeHead(); };
@@ -255,6 +292,7 @@ export default function TintoStage({ engine, onProgress }: { engine: TintoEngine
     return () => {
       cancelled = true;
       ro.disconnect();
+      bodyRo.disconnect();
       near.disconnect();
       vis.disconnect();
       window.removeEventListener('scroll', onScroll);
