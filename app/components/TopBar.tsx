@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { onSoundChange, play, setSoundEnabled, soundEnabled } from '../lib/sound';
+import { play } from '../lib/sound';
 import { supabase } from '../lib/supabase';
-import { ArrowUpRight, Close, Lock, Menu, Speaker } from './icons';
+import { ArrowUpRight, Close, Lock, Menu } from './icons';
 
 const LINKS = [
   { href: '/', label: 'Inicio', match: (p: string) => p === '/' },
@@ -14,19 +14,6 @@ const LINKS = [
   { href: '/#horarios', label: 'Horarios' },
   { href: '/contacto', label: 'Contacto', match: (p: string) => p.startsWith('/contacto') },
 ];
-
-export function SoundToggle({ className = '' }: { className?: string }) {
-  const [on, setOn] = useState(true);
-  useEffect(() => { setOn(soundEnabled()); return onSoundChange(setOn); }, []);
-  return (
-    <button type="button" className={`icon-btn ${className}`} data-sfx="none" aria-pressed={on}
-      aria-label={on ? 'Silenciar efectos de sonido' : 'Activar efectos de sonido'} title={on ? 'Sonido: activado' : 'Sonido: apagado'}
-      onClick={() => setSoundEnabled(!on)}>
-      <Speaker on={on} />
-      <span className={`eq${on ? ' is-on' : ''}`} aria-hidden="true"><i /><i /><i /></span>
-    </button>
-  );
-}
 
 export default function TopBar({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   const pathname = usePathname() || '/';
@@ -77,7 +64,6 @@ export default function TopBar({ tone = 'light' }: { tone?: 'light' | 'dark' }) 
         </nav>
 
         <div className="capsule__tools">
-          <SoundToggle />
           <Link href={signedIn ? '/panel' : '/ingresar'} className="icon-btn" aria-label={signedIn ? 'Ir al panel' : 'Ingresar (equipo Pura Tinta)'} title={signedIn ? 'Panel' : 'Ingresar'}>
             <Lock />
           </Link>

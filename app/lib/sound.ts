@@ -3,17 +3,16 @@
 // Efectos de sonido sintetizados con Web Audio: sin archivos, pesan 0 KB y suenan al instante.
 // El navegador solo deja sonar después de la primera interacción, así que el contexto se crea ahí.
 
-type Sfx = 'tick' | 'click' | 'pop' | 'paper' | 'print' | 'cut' | 'ding' | 'error' | 'stamp' | 'toggle' | 'swoosh' | 'key';
+type Sfx = 'tick' | 'click' | 'pop' | 'paper' | 'print' | 'printing' | 'check' | 'cut' | 'ding' | 'error' | 'stamp' | 'toggle' | 'swoosh' | 'key';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let noise: AudioBuffer | null = null;
-let enabled = true;
 let unlocked = false;
-const subs = new Set<(on: boolean) => void>();
 
+// El sonido está siempre encendido (ya no hay botón para apagarlo). Se borra la preferencia vieja.
 if (typeof window !== 'undefined') {
-  try { enabled = localStorage.getItem('pt-sound') !== 'off'; } catch {}
+  try { localStorage.removeItem('pt-sound'); } catch {}
 }
 
 function audio() {
@@ -34,17 +33,8 @@ function audio() {
 
 export function unlockAudio() {
   unlocked = true;
-  if (enabled) audio();
+  audio();
 }
-
-export const soundEnabled = () => enabled;
-export function setSoundEnabled(on: boolean) {
-  enabled = on;
-  try { localStorage.setItem('pt-sound', on ? 'on' : 'off'); } catch {}
-  subs.forEach((fn) => fn(on));
-  if (on) { unlockAudio(); play('toggle'); }
-}
-export function onSoundChange(fn: (on: boolean) => void) { subs.add(fn); return () => { subs.delete(fn); }; }
 
 function env(g: GainNode, t: number, peak: number, attack: number, decay: number) {
   g.gain.setValueAtTime(0.0001, t);
@@ -71,7 +61,7 @@ function hiss(dur: number, peak: number, filter: BiquadFilterType, f0: number, f
 
 let lastTick = 0;
 export function play(name: Sfx) {
-  if (!enabled || !unlocked) return;
+  if (!unlocked) return;
   if (!audio() || !master) return;
   switch (name) {
     case 'tick': {
@@ -85,6 +75,25 @@ export function play(name: Sfx) {
     case 'paper': hiss(0.28, 0.16, 'bandpass', 900, 3200, 0.7); break;
     case 'swoosh': hiss(0.35, 0.09, 'bandpass', 400, 1800, 1.2); break;
     case 'print': tone('square', 92, 88, 0.045, 0.05); hiss(0.035, 0.07, 'bandpass', 5200, 3800, 2.5); break;
+    case 'printing': {
+      // Impresora andando: el cabezal hace cuatro pasadas (zumbido de motor + roce) y entre cada una
+      // el rodillo avanza la hoja con un clic seco; al final la hoja sale.
+      for (let i = 0; i < 4; i++) {
+        const d = i * 0.24;
+        tone('sawtooth', 120, 150, 0.17, 0.045, d);
+        hiss(0.17, 0.15, 'bandpass', 1900, 3000, 3, d);
+        tone('square', 74, 62, 0.03, 0.1, d + 0.19);
+        hiss(0.025, 0.09, 'highpass', 4200, 4200, 0.7, d + 0.19);
+      }
+      hiss(0.34, 0.2, 'bandpass', 700, 2600, 0.7, 0.98);
+      break;
+    }
+    case 'check':
+      // "Listo": dos notas que suben (do–sol) con un brillo suave arriba.
+      tone('sine', 1046.5, 1046.5, 0.16, 0.2);
+      tone('sine', 1568, 1568, 0.5, 0.22, 0.1);
+      tone('triangle', 3136, 3136, 0.3, 0.025, 0.1);
+      break;
     case 'cut': hiss(0.22, 0.28, 'highpass', 6000, 1400, 0.6); tone('sawtooth', 220, 90, 0.08, 0.04); break;
     case 'stamp': tone('sine', 140, 48, 0.16, 0.5); hiss(0.05, 0.12, 'lowpass', 1200, 300); break;
     case 'ding': tone('sine', 1318, 1318, 0.9, 0.2); tone('sine', 1760, 1760, 1.1, 0.14, 0.12); tone('sine', 2637, 2637, 0.5, 0.04, 0.12); break;

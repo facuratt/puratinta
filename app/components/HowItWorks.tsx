@@ -66,9 +66,11 @@ export default function HowItWorks() {
     sheet.style.transform = `translate3d(${sx.toFixed(1)}px, ${sy.toFixed(1)}px, 0) rotate(${(ang * 0.35).toFixed(1)}deg)`;
     const idx = p < 0.36 ? 0 : p < 0.7 ? 1 : 2;
     if (idx !== activeRef.current) {
+      const forward = idx > activeRef.current;
       activeRef.current = idx;
       setActive(idx);
-      play('paper');
+      // Llega a la impresora: suena imprimiendo. Llega al retiro: suena "listo". Volviendo: papel.
+      play(forward ? (idx === 1 ? 'printing' : idx === 2 ? 'check' : 'paper') : 'paper');
     }
   }, []);
 

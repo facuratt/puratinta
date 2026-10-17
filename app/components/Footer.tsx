@@ -6,7 +6,6 @@ import { BUSINESS, formatMoney, whatsappUrl } from '../lib/config';
 import { openStatus } from '../lib/hours';
 import { useLive } from '../lib/settings';
 import { ArrowUpRight, InstagramGlyph, Lock, WhatsAppGlyph } from './icons';
-import { SoundToggle } from './TopBar';
 
 export default function Footer() {
   const { settings, prices } = useLive();
@@ -55,8 +54,6 @@ export default function Footer() {
           <h3>Contacto</h3>
           <a href={whatsappUrl('Hola Pura Tinta! 👋')} target="_blank" rel="noopener noreferrer" className="footer__social"><WhatsAppGlyph /> {BUSINESS.whatsappDisplay}</a>
           <a href={BUSINESS.instagramUrl} target="_blank" rel="noopener noreferrer" className="footer__social"><InstagramGlyph /> @{BUSINESS.instagram}</a>
-          <h3 className="mt">Sonido</h3>
-          <div className="footer__prefs"><SoundToggle className="icon-btn--label" /></div>
         </div>
       </div>
 
