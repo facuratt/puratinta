@@ -299,7 +299,7 @@ function WebPane({ say }: { say: (t: string) => void }) {
       <div className="pcard">
         <h2><Icon3D name="ticket" size={48} /> Pedidos online</h2>
         <Switch on={s.ordersOpen} set={(v) => setS({ ...s, ordersOpen: v })} label={s.ordersOpen ? 'Recibiendo pedidos' : 'Pedidos en pausa'}
-          hint="Si lo pausás, la página de pedido muestra el mensaje de abajo y un botón a WhatsApp." />
+          hint="Si lo pausás, la gente arma el pedido igual y se le abre WhatsApp con todo el pedido escrito, listo para enviar." />
         <label className="field">Mensaje cuando está en pausa<input value={s.pausedMessage} maxLength={200} onChange={(e) => setS({ ...s, pausedMessage: e.target.value })} /></label>
       </div>
       <div className="pcard">

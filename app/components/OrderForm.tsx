@@ -55,6 +55,7 @@ export default function OrderForm() {
   const [error, setError] = useState('');
   const [order, setOrder] = useState<Order | null>(null);
   const [mailed, setMailed] = useState<boolean | null>(null);
+  const [sentWa, setSentWa] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -106,9 +107,41 @@ export default function OrderForm() {
     window.scrollTo({ top: (formRef.current?.getBoundingClientRect().top ?? 0) + window.scrollY - 110, behavior: 'smooth' });
   }
 
+  /** Pedido completo como mensaje de WhatsApp (los archivos se adjuntan en el chat). */
+  function draftMessage() {
+    const lines = [
+      'Hola Pura Tinta! Quiero hacer este pedido de impresiones:',
+      '',
+      `👤 ${form.name.trim()}`,
+      `📱 ${form.phone.trim()}`,
+      ...(form.email.trim() ? [`✉️ ${form.email.trim()}`] : []),
+      '',
+      ...items.map((it, i) => {
+        const sh = sheetsFor(it.pages, it.sides) * it.copies;
+        return `${i + 1}. ${it.file.name} — ${it.copies} ${it.copies === 1 ? 'copia' : 'copias'} B/N ${it.sides === 'doble' ? 'doble faz' : 'simple faz'}, ${it.pages} pág. = ${sh} ${sh === 1 ? 'hoja' : 'hojas'} (${formatMoney(subtotalFor(it.pages, it.copies, it.sides, prices))})`;
+      }),
+      ...(form.notes.trim() ? ['', `📝 ${form.notes.trim()}`] : []),
+      '',
+      `Total de hojas: ${sheets}`,
+      `Total estimado: *${formatMoney(total)}*`,
+      '',
+      `Te mando ${items.length === 1 ? 'el archivo' : 'los archivos'} por acá 👇`,
+    ];
+    return lines.join('\n');
+  }
+
+  function sendViaWhatsApp() {
+    if (!items.length) { setTab(0); setError('Subí al menos un archivo.'); play('error'); return; }
+    if (!validData) { setTab(1); setError('Completá tu nombre y tu WhatsApp.'); play('error'); return; }
+    try { localStorage.setItem(DRAFT, JSON.stringify({ name: form.name, phone: form.phone, email: form.email })); } catch {}
+    play('pop');
+    window.open(whatsappUrl(draftMessage()), '_blank', 'noopener');
+    setSentWa(true);
+  }
+
   async function submit(e?: FormEvent) {
     e?.preventDefault();
-    if (closed) return;
+    if (closed) { sendViaWhatsApp(); return; }
     if (!items.length) { setTab(0); setError('Subí al menos un archivo.'); return; }
     if (!validData) { setTab(1); setError('Completá tu nombre y tu WhatsApp.'); return; }
     setError('');
@@ -164,23 +197,19 @@ export default function OrderForm() {
     setPct(0);
   }
 
-  if (closed && !order) {
-    return (
-      <div className="paused">
-        <Icon3D name="clock" size={160} />
-        <h2 className="display-sm">Pedidos online en pausa</h2>
-        <p>{settings.maintenance ? 'Estamos haciendo mantenimiento en la web.' : settings.pausedMessage}</p>
-        <a className="btn btn--ink" href={whatsappUrl('Hola Pura Tinta! Quería hacer un pedido de impresiones.')} target="_blank" rel="noopener noreferrer">
-          <WhatsAppGlyph /> Pedir por WhatsApp · {BUSINESS.whatsappDisplay}
-        </a>
-      </div>
-    );
-  }
-
   return (
     <>
       <form className="order" ref={formRef} onSubmit={submit} noValidate>
         <div className="order__main">
+          {closed && (
+            <div className="wa-mode" role="status">
+              <span className="wa-mode__icon" aria-hidden="true"><WhatsAppGlyph /></span>
+              <div>
+                <b>{settings.maintenance ? 'Hoy tomamos los pedidos por WhatsApp.' : settings.pausedMessage}</b>
+                <p>Armá tu pedido igual acá: al final se abre WhatsApp al {BUSINESS.whatsappDisplay} con todo escrito, listo para apretar enviar. Después adjuntás los archivos en el chat.</p>
+              </div>
+            </div>
+          )}
           <div className="tabs" role="tablist" aria-label="Pasos del pedido">
             {TABS.map((t, i) => (
               <button key={t} type="button" role="tab" id={`tab-${i}`} aria-controls={`panel-${i}`} aria-selected={tab === i}
@@ -302,7 +331,10 @@ export default function OrderForm() {
                   </li>
                 ))}
               </ul>
-              <p className="review__note">Al confirmar subimos tus archivos, se imprime tu ticket con el número de pedido y le avisamos a Pura Tinta.</p>
+              <p className="review__note">{closed
+                ? 'Al tocar el botón se abre WhatsApp con tu pedido completo. Solo apretá enviar y adjuntá los archivos en el chat.'
+                : 'Al confirmar subimos tus archivos, se imprime tu ticket con el número de pedido y le avisamos a Pura Tinta.'}</p>
+              {sentWa && <p className="form-ok">¡Listo! Si WhatsApp no se abrió, <a href={whatsappUrl(draftMessage())} target="_blank" rel="noopener noreferrer">tocá acá</a>.</p>}
             </div>
             {sending && (
               <div className="upload-bar" aria-live="polite">
@@ -312,13 +344,26 @@ export default function OrderForm() {
             )}
             <div className="pane__nav">
               <button type="button" className="btn btn--line" onClick={() => go(1)} disabled={sending}><Chevron dir="left" /> Tus datos</button>
-              <button type="submit" className="btn btn--sun btn--lg" disabled={sending} data-sfx="stamp">
-                {sending ? 'Enviando…' : <>Confirmar pedido · {formatMoney(total)}</>}
-              </button>
+              {closed ? (
+                <button type="submit" className="btn btn--wa btn--lg" data-sfx="none"><WhatsAppGlyph /> Enviar pedido por WhatsApp · {formatMoney(total)}</button>
+              ) : (
+                <button type="submit" className="btn btn--sun btn--lg" disabled={sending} data-sfx="stamp">
+                  {sending ? 'Enviando…' : <>Confirmar pedido · {formatMoney(total)}</>}
+                </button>
+              )}
             </div>
           </section>
 
-          {error && <p className="form-error" role="alert">{error}</p>}
+          {error && (
+            <div className="form-error" role="alert">
+              <p>{error}</p>
+              {tab === 2 && items.length > 0 && validData && !closed && (
+                <button type="button" className="btn btn--wa btn--sm" onClick={sendViaWhatsApp} data-sfx="none">
+                  <WhatsAppGlyph /> Mandarlo por WhatsApp en su lugar
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <aside className="order__aside" aria-label="Resumen">

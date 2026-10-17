@@ -159,7 +159,7 @@ export function GirlStage({bounds}: {bounds: StageBounds}) {
 
       const gutter = Math.max(24, Math.min(64, W * 0.035));
 
-      if (W >= 1024 && lockR) {
+      if (W >= 760 && W / H >= 1 && lockR) {
         // Side by side: she takes the column between the two blocks of type.
         const x0 = lockR.right - r.left + gutter;
         const x1 = (idxR ? idxR.left - r.left : W) - gutter;

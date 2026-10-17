@@ -9,6 +9,7 @@ type Live = { settings: SiteSettings; prices: Prices; loaded: boolean };
 const KEY = 'pt-settings-v1';
 let cache: Live | null = null;
 let inflight: Promise<Live> | null = null;
+let fresh = false; // ya consultamos la base en esta carga de página
 const listeners = new Set<(l: Live) => void>();
 
 function merge(data: Partial<SiteSettings> | null | undefined): SiteSettings {
@@ -34,7 +35,7 @@ function readSession(): Live | null {
 }
 
 export async function fetchLive(force = false): Promise<Live> {
-  if (cache && !force) return cache;
+  if (cache && fresh && !force) return cache;
   if (inflight && !force) return inflight;
   inflight = (async () => {
     const [s, p] = await Promise.all([
@@ -45,6 +46,7 @@ export async function fetchLive(force = false): Promise<Live> {
     for (const row of (p.data ?? []) as { sides: keyof Prices; price_per_sheet: number }[]) prices[row.sides] = row.price_per_sheet;
     const live: Live = { settings: merge(s.data?.data as Partial<SiteSettings>), prices, loaded: !s.error };
     cache = live;
+    fresh = true;
     try { sessionStorage.setItem(KEY, JSON.stringify(live)); } catch {}
     listeners.forEach((fn) => fn(live));
     return live;
