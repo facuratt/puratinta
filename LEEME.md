@@ -1,59 +1,51 @@
 # Pura Tinta — web
 
-- `/` inicio · `/pedido` hacer pedido (sube archivos + ticket en impresora 3D) · `/contacto` · `/panel` pedidos (privado)
-- Datos del negocio (WhatsApp, Instagram, alias de Mercado Pago, precios): `app/config.ts`
-- Los precios que cobra el sistema están en la tabla `prices` de Supabase (si cambian, actualizar ahí y en `config.ts`).
-- La web es 100% estática. Pedidos, archivos, usuarios y el aviso por email viven en Supabase.
+Fusión de los proyectos **marmalade** (la chica animada que sigue el cursor, en el inicio) y **pouterby**
+(Tinto, el monito animado, la cápsula de navegación, el radar y la marquesina), sobre papel y tinta.
+
+## Páginas
+- `/` inicio: hero con la chica · Cómo funciona (scroll-driven) · Precios + calculadora · Horarios (abierto/cerrado en vivo) · Tinto · WhatsApp / Instagram
+- `/pedido` subir archivos en 3 pestañas → la impresora 3D imprime el ticket por la ranura → enviar por WhatsApp, descargar o imprimir
+- `/contacto` WhatsApp, Instagram, QR, mensaje directo por WhatsApp, horarios, Mercado Pago
+- `/ingresar` acceso **solo** para los correos autorizados → `/panel`
+- `/panel` pestañas: Pedidos · Precios y horarios · Web y avisos · Equipo · Mantenimiento
+
+## Qué se edita desde el panel (sin tocar código)
+Precios por hoja, horarios, banda de aviso, pausar pedidos online (y su mensaje), alias de Mercado Pago,
+email donde llegan los pedidos, contraseñas del equipo, modo mantenimiento, liberar espacio de archivos viejos.
+
+## Datos fijos (código)
+WhatsApp, Instagram y textos: `app/lib/config.ts`. Íconos 3D: `public/icons/` (renderizados con three.js).
+Logo original sin modificar (solo sin el fondo exterior): `public/brand/`.
+
+## Acceso restringido
+- Supabase, tabla `allowed_admins`: solo esos correos pueden tener cuenta. Un trigger en `auth.users` bloquea cualquier otro registro.
+- `is_admin()` mira esa lista; todas las políticas (pedidos, archivos, precios, ajustes) dependen de ella.
+- La web también rechaza otros correos antes de consultar (compara un hash, así los correos no quedan publicados).
+- Registro: `supabase/migrations/20261017_admin_y_ajustes.sql`.
+
+## Aviso de pedidos por mail
+Función `notify-order` (`supabase/functions/notify-order`). Manda la orden completa al email configurado en el panel.
+- Sin configurar nada usa **FormSubmit**: el primer pedido manda un mail de activación al destino; hay que tocar "Activate" una vez.
+- Para usar **Resend**: Supabase → Edge Functions → Secrets → `RESEND_API_KEY` (y `ORDER_EMAIL_FROM` con dominio verificado).
+- `SITE_URL` (opcional) = la dirección pública, para el enlace al panel dentro del mail.
+
+## Rendimiento
+`html[data-perf]` = `high` | `low`. Se decide antes del primer pintado (memoria, núcleos, ahorro de datos, movimiento reducido)
+y baja solo a liviano si los primeros segundos van lentos. Liviano: frames de Tinto en 560 px y menos cuadros, sin blur,
+sin cursor-gota, canvas a 1x. También hay un botón "Modo liviano" en el pie de página.
+
+## Sonidos
+Sintetizados con Web Audio (`app/lib/sound.ts`): 0 KB de archivos. Botón de silencio en la cápsula y en el pie.
 
 ## Publicación (GitHub + Cloudflare)
-Dirección de la web: **https://puratinta.pages.dev** (proyecto de Cloudflare Pages `puratinta`).
-Esta carpeta está conectada al repositorio github.com/facuratt/puratinta. Cloudflare Pages toma el código
-de GitHub, lo compila (`npm run build`) y publica la carpeta `out/`.
-(También existe el Worker `puratinta` en puratinta.facurattaro.workers.dev, que publica lo mismo;
-se puede borrar desde Cloudflare si no se usa.)
-
-Para publicar una corrección, desde esta carpeta:
-```
-git add -A
-git commit -m "descripción del cambio"
-git push
-```
-En un par de minutos Cloudflare publica la versión nueva.
-
-Configuración en Cloudflare → Worker `puratinta` → Settings → Build:
-- Build command: `npm run build`
-- Deploy command: `npx wrangler deploy`
-- Root directory: `/`
-
-Dominio propio: Worker → Settings → Domains & Routes → Add → Custom domain.
-Supabase → Authentication → URL Configuration → **Site URL** = la dirección de la web.
+Cloudflare toma el código de GitHub, corre `npm run build` y publica `out/`.
+Dominio propio (para sacar el nombre del link): Cloudflare → Worker/Pages `puratinta` → Domains → Add custom domain.
+Después: Supabase → Authentication → URL Configuration → **Site URL** = el dominio nuevo, y el secreto `SITE_URL`.
 
 ## Correr en la compu
 ```
+npm install
 npm run dev
 ```
 Abrir http://localhost:3000
-
-## Usuarios del panel
-Los usuarios viven en **Supabase Auth** (proyecto `pura-tinta`, servidor en São Paulo). Las contraseñas se guardan cifradas: nadie puede verlas, ni desde el panel de Supabase. Cloudflare solo publica la web y no guarda usuarios.
-
-Para cada persona que tenga que ver los pedidos:
-1. Supabase → proyecto **pura-tinta** → Authentication → Users → **Add user** → **Create new user** (email + contraseña, tildar *Auto Confirm User*).
-2. Authentication → Sign In / Providers → desactivar **Allow new users to sign up**.
-3. SQL Editor:
-   ```sql
-   insert into public.admins (user_id)
-   select id from auth.users where email in ('EMAIL_DE_ELLA', 'TU_EMAIL');
-   ```
-
-## Aviso por email de cada pedido
-Lo envía la función `notify-order` de Supabase (código en `supabase/functions/notify-order`).
-1. Crear cuenta en resend.com y generar una API key.
-2. Supabase → Edge Functions → **Secrets** → agregar:
-   - `RESEND_API_KEY` = la clave de Resend
-   - `ORDER_EMAIL_TO` = el email donde llegan los pedidos
-   - `SITE_URL` = la dirección de la web (para el enlace al panel)
-Con el remitente `onboarding@resend.dev` solo se puede enviar al email con el que te registraste en Resend; para otro remitente hay que verificar un dominio en Resend y agregar `ORDER_EMAIL_FROM`.
-
-## Supabase plan gratis
-El proyecto se pausa tras 7 días sin actividad. Si pasa, la web se sigue viendo pero los pedidos fallan hasta reactivarlo desde supabase.com.
