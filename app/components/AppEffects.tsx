@@ -34,10 +34,16 @@ export default function AppEffects() {
       if ((t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') && e.key.length === 1) play('key');
       if (e.key === 'Enter' && t.closest?.('a, button')) play('click');
     };
+    // En iPhone el audio recién se habilita al soltar el dedo (touchend/click), no al apoyarlo.
+    const unlock = () => unlockAudio();
     document.addEventListener('pointerdown', down, { passive: true });
     document.addEventListener('pointerover', over, { passive: true });
     document.addEventListener('keydown', key);
+    document.addEventListener('touchend', unlock, { passive: true });
+    document.addEventListener('click', unlock, { passive: true });
     return () => {
+      document.removeEventListener('touchend', unlock);
+      document.removeEventListener('click', unlock);
       document.removeEventListener('pointerdown', down);
       document.removeEventListener('pointerover', over);
       document.removeEventListener('keydown', key);

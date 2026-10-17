@@ -1,18 +1,47 @@
 'use client';
 
-// Efectos de sonido sintetizados con Web Audio: sin archivos, pesan 0 KB y suenan al instante.
-// El navegador solo deja sonar después de la primera interacción, así que el contexto se crea ahí.
+// Efectos de sonido: grabaciones cortas (public/sfx, ~120 KB en total) hechas con síntesis física
+// —papel, rodillos, motor de la impresora, marimba, vidrio— en vez de ondas cuadradas "de arcade".
+// Se descargan apenas carga la página y se decodifican en el primer toque/clic: el navegador no deja
+// sonar nada antes de esa primera interacción. El sonido está siempre encendido (no hay botón).
 
 type Sfx = 'tick' | 'click' | 'pop' | 'paper' | 'print' | 'printing' | 'check' | 'cut' | 'ding' | 'error' | 'stamp' | 'toggle' | 'swoosh' | 'key';
 
+const NAMES: Sfx[] = ['tick', 'click', 'pop', 'paper', 'print', 'printing', 'check', 'cut', 'ding', 'error', 'stamp', 'toggle', 'swoosh', 'key'];
+// Pequeña variación de velocidad en los sonidos que se repiten mucho, para que no suenen a loop.
+const VARY: Partial<Record<Sfx, number>> = { tick: 0.06, key: 0.08, print: 0.07, click: 0.03, paper: 0.05, toggle: 0.03 };
+
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let noise: AudioBuffer | null = null;
 let unlocked = false;
+const raw = new Map<Sfx, Promise<ArrayBuffer | null>>();
+const buffers = new Map<Sfx, AudioBuffer>();
+let pending: { name: Sfx; at: number } | null = null;
 
-// El sonido está siempre encendido (ya no hay botón para apagarlo). Se borra la preferencia vieja.
 if (typeof window !== 'undefined') {
-  try { localStorage.removeItem('pt-sound'); } catch {}
+  try { localStorage.removeItem('pt-sound'); } catch { /* sin almacenamiento */ }
+  // Descarga en segundo plano (no compite con lo que se ve primero).
+  const fetchAll = () => {
+    for (const n of NAMES) raw.set(n, fetch(`/sfx/${n}.mp3`).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
+  };
+  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+  if (ric) ric(fetchAll, { timeout: 2500 }); else setTimeout(fetchAll, 1200);
+}
+
+function decodeAll(a: AudioContext) {
+  for (const n of NAMES) {
+    if (buffers.has(n)) continue;
+    const p = raw.get(n) ?? fetch(`/sfx/${n}.mp3`).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+    raw.set(n, p);
+    p.then((ab) => {
+      if (!ab || buffers.has(n)) return;
+      // Safari viejo solo acepta la versión con callbacks.
+      a.decodeAudioData(ab.slice(0), (buf) => {
+        buffers.set(n, buf);
+        if (pending && pending.name === n && performance.now() - pending.at < 250) { const p2 = pending.name; pending = null; play(p2); }
+      }, () => {});
+    });
+  }
 }
 
 function audio() {
@@ -21,82 +50,42 @@ function audio() {
     if (!AC) return null;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = 0.42;
+    master.gain.value = 0.9;
     master.connect(ctx.destination);
-    noise = ctx.createBuffer(1, ctx.sampleRate * 1, ctx.sampleRate);
-    const d = noise.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    decodeAll(ctx);
   }
-  if (ctx.state === 'suspended') void ctx.resume();
+  if (ctx.state !== 'running') void ctx.resume().catch(() => {});
   return ctx;
 }
 
+/** Llamar desde un gesto del usuario (toque, clic, tecla). En iPhone hace falta sonar algo dentro del gesto. */
 export function unlockAudio() {
+  const a = audio();
+  if (!a) return;
   unlocked = true;
-  audio();
-}
-
-function env(g: GainNode, t: number, peak: number, attack: number, decay: number) {
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(peak, t + attack);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
-}
-
-function tone(type: OscillatorType, f0: number, f1: number, dur: number, peak: number, delay = 0) {
-  const a = ctx!; const t = a.currentTime + delay;
-  const o = a.createOscillator(); const g = a.createGain();
-  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
-  env(g, t, peak, 0.004, dur);
-  o.connect(g).connect(master!); o.start(t); o.stop(t + dur + 0.05);
-}
-
-function hiss(dur: number, peak: number, filter: BiquadFilterType, f0: number, f1: number, q = 0.8, delay = 0) {
-  const a = ctx!; const t = a.currentTime + delay;
-  const s = a.createBufferSource(); s.buffer = noise; s.loop = true;
-  const bq = a.createBiquadFilter(); bq.type = filter; bq.Q.value = q;
-  bq.frequency.setValueAtTime(f0, t); bq.frequency.exponentialRampToValueAtTime(Math.max(f1, 20), t + dur);
-  const g = a.createGain(); env(g, t, peak, 0.006, dur);
-  s.connect(bq).connect(g).connect(master!); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  // Hasta que el contexto quede andando, cada gesto suena un buffer mudo (truco necesario en iOS).
+  if (a.state !== 'running') {
+    try {
+      const s = a.createBufferSource();
+      s.buffer = a.createBuffer(1, 1, 22050);
+      s.connect(a.destination);
+      s.start(0);
+    } catch { /* nada */ }
+  }
 }
 
 let lastTick = 0;
 export function play(name: Sfx) {
   if (!unlocked) return;
-  if (!audio() || !master) return;
-  switch (name) {
-    case 'tick': {
-      const now = performance.now(); if (now - lastTick < 55) return; lastTick = now;
-      tone('sine', 2400, 1800, 0.025, 0.05); break;
-    }
-    case 'key': tone('triangle', 1700 + Math.random() * 500, 900, 0.02, 0.035); break;
-    case 'click': tone('sine', 680, 320, 0.07, 0.22); hiss(0.02, 0.06, 'highpass', 3000, 3000); break;
-    case 'pop': tone('sine', 420, 980, 0.09, 0.22); tone('sine', 980, 1400, 0.06, 0.08, 0.05); break;
-    case 'toggle': tone('square', 900, 900, 0.018, 0.05); tone('square', 1350, 1350, 0.018, 0.05, 0.05); break;
-    case 'paper': hiss(0.28, 0.16, 'bandpass', 900, 3200, 0.7); break;
-    case 'swoosh': hiss(0.35, 0.09, 'bandpass', 400, 1800, 1.2); break;
-    case 'print': tone('square', 92, 88, 0.045, 0.05); hiss(0.035, 0.07, 'bandpass', 5200, 3800, 2.5); break;
-    case 'printing': {
-      // Impresora andando: el cabezal hace cuatro pasadas (zumbido de motor + roce) y entre cada una
-      // el rodillo avanza la hoja con un clic seco; al final la hoja sale.
-      for (let i = 0; i < 4; i++) {
-        const d = i * 0.24;
-        tone('sawtooth', 120, 150, 0.17, 0.045, d);
-        hiss(0.17, 0.15, 'bandpass', 1900, 3000, 3, d);
-        tone('square', 74, 62, 0.03, 0.1, d + 0.19);
-        hiss(0.025, 0.09, 'highpass', 4200, 4200, 0.7, d + 0.19);
-      }
-      hiss(0.34, 0.2, 'bandpass', 700, 2600, 0.7, 0.98);
-      break;
-    }
-    case 'check':
-      // "Listo": dos notas que suben (do–sol) con un brillo suave arriba.
-      tone('sine', 1046.5, 1046.5, 0.16, 0.2);
-      tone('sine', 1568, 1568, 0.5, 0.22, 0.1);
-      tone('triangle', 3136, 3136, 0.3, 0.025, 0.1);
-      break;
-    case 'cut': hiss(0.22, 0.28, 'highpass', 6000, 1400, 0.6); tone('sawtooth', 220, 90, 0.08, 0.04); break;
-    case 'stamp': tone('sine', 140, 48, 0.16, 0.5); hiss(0.05, 0.12, 'lowpass', 1200, 300); break;
-    case 'ding': tone('sine', 1318, 1318, 0.9, 0.2); tone('sine', 1760, 1760, 1.1, 0.14, 0.12); tone('sine', 2637, 2637, 0.5, 0.04, 0.12); break;
-    case 'error': tone('square', 196, 180, 0.09, 0.08); tone('square', 156, 140, 0.12, 0.08, 0.11); break;
-  }
+  const a = audio();
+  if (!a || !master) return;
+  if (name === 'tick') { const now = performance.now(); if (now - lastTick < 55) return; lastTick = now; }
+  const buf = buffers.get(name);
+  if (!buf) { pending = { name, at: performance.now() }; return; }
+  const src = a.createBufferSource();
+  src.buffer = buf;
+  const v = VARY[name];
+  if (v) src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v;
+  src.connect(master);
+  src.start();
 }

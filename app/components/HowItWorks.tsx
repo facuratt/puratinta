@@ -50,6 +50,7 @@ export default function HowItWorks() {
     return () => ro.disconnect();
   }, [tall]);
 
+  const lastP = useRef({ p: 0, t: 0 });
   const onProgress = useCallback((p: number) => {
     const path = pathRef.current;
     const sheet = sheetRef.current;
@@ -64,13 +65,18 @@ export default function HowItWorks() {
     const sx = (pt.x / vw) * w;
     const sy = (pt.y / vh) * h;
     sheet.style.transform = `translate3d(${sx.toFixed(1)}px, ${sy.toFixed(1)}px, 0) rotate(${(ang * 0.35).toFixed(1)}deg)`;
+    // Velocidad del scroll en "secciones por segundo": si se pasa de largo (un link del menú que
+    // salta más abajo), no suena nada; solo cuando la persona recorre los pasos.
+    const now = performance.now();
+    const v = Math.abs(p - lastP.current.p) / Math.max(1, now - lastP.current.t) * 1000;
+    lastP.current = { p, t: now };
     const idx = p < 0.36 ? 0 : p < 0.7 ? 1 : 2;
     if (idx !== activeRef.current) {
       const forward = idx > activeRef.current;
       activeRef.current = idx;
       setActive(idx);
       // Llega a la impresora: suena imprimiendo. Llega al retiro: suena "listo". Volviendo: papel.
-      play(forward ? (idx === 1 ? 'printing' : idx === 2 ? 'check' : 'paper') : 'paper');
+      if (v < 1.6) play(forward ? (idx === 1 ? 'printing' : idx === 2 ? 'check' : 'paper') : 'paper');
     }
   }, []);
 
