@@ -123,8 +123,8 @@ export default function Tinto() {
             igual que a tu pedido desde que lo mandás hasta que lo retirás.
           </p>
           <div className="tinto__actions" data-reveal>
-            <Link href="/pedido" className="btn btn--sun btn--lg" data-sfx="pop">
-              Mandarle un pedido <span className="btn__icon btn__icon--ink"><ArrowUpRight /></span>
+            <Link href="/pedido" className="btn btn--cocoa btn--lg" data-sfx="pop">
+              Mandarle un pedido <span className="btn__icon"><ArrowUpRight /></span>
             </Link>
             <button type="button" className="link-btn" onClick={() => { engine?.lookAround(); play('swoosh'); }} data-sfx="none">
               <Loop /> Mirá cómo revisa
@@ -133,8 +133,8 @@ export default function Tinto() {
         </div>
         {engine && <div className="tinto__stack" data-reveal><QualityFeed engine={engine} progress={progress} /></div>}
       </div>
-      <Ticker tone="violet" />
-      <p className="sr-only">Un monito amarillo animado sobre un escenario violeta que gira la cabeza hacia donde va el cursor.</p>
+      <Ticker tone="ink" />
+      <p className="sr-only">Un monito amarillo animado sobre un escenario rosa que gira la cabeza hacia donde va el cursor.</p>
     </section>
   );
 }
