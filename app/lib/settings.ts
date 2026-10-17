@@ -18,6 +18,7 @@ function merge(data: Partial<SiteSettings> | null | undefined): SiteSettings {
     ...DEFAULT_SETTINGS,
     ...d,
     announcement: { ...DEFAULT_SETTINGS.announcement, ...(d.announcement ?? {}) },
+    bulk: { ...DEFAULT_SETTINGS.bulk, ...(d.bulk ?? {}) },
     hours: {
       weekdays: { ...DEFAULT_SETTINGS.hours.weekdays, ...(d.hours?.weekdays ?? {}) },
       weekend: { ...DEFAULT_SETTINGS.hours.weekend, ...(d.hours?.weekend ?? {}) },

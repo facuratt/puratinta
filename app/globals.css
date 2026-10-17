@@ -1171,3 +1171,9 @@ html[data-perf='low'] .tile__icon, html[data-perf='low'] .hours__clock .icon3d {
   .pr-paper { transform: none !important; }
   .announce, .topbar, .ink-cursor { display: none !important; }
 }
+
+/* Precio por cantidad */
+.price-card__bulk { margin: 10px 0 0; padding: 8px 12px; border-radius: 12px; background: rgba(63, 35, 31, .1); font-size: 14px; width: fit-content; }
+.bulk-note { margin: 0 0 10px; padding: 10px 14px; border-radius: 14px; background: var(--paper-2); font-size: 14px; font-weight: 600; }
+.bulk-note.is-on { background: #fff2bf; box-shadow: 0 0 0 1.5px var(--sun-deep); }
+.summary__bulk { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: var(--sun); color: var(--ink); font-style: normal; font-size: 12px; font-weight: 700; width: fit-content; }
