@@ -128,3 +128,9 @@ end $$;
 -- 5) Precio por cantidad (17/10/2026): site_settings.data.bulk = { enabled, minSheets, dobleSheetPrice }.
 --    create_order suma las hojas doble faz de todo el pedido; si llegan a minSheets, todas las hojas doble faz
 --    se cobran a dobleSheetPrice (por defecto: desde 50 hojas, $120 la hoja = $60 la carilla). Editable desde el panel.
+
+-- 6) Borrado de archivos al marcar "Listo" (17/10/2026): order_files.deleted_at + política de update para admins.
+--    El panel pide confirmación, borra los archivos del bucket y marca deleted_at; el pedido queda en el historial.
+alter table public.order_files add column if not exists deleted_at timestamptz;
+create policy "admin updates order files" on public.order_files for update to authenticated
+  using ((select public.is_admin())) with check ((select public.is_admin()));

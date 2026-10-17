@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Icon3D, LogOut, Search, WhatsAppGlyph, Download, Printer } from '../components/icons';
+import { Icon3D, LogOut, Search, WhatsAppGlyph, Download, Printer, Trash } from '../components/icons';
 import Ticket from '../components/Ticket';
 import { DEFAULT_SETTINGS, formatMoney, STATUS_LABELS, type DayHours, type SiteSettings } from '../lib/config';
 import { getTier, setTier } from '../lib/perf';
@@ -91,11 +91,51 @@ export default function PanelPage() {
 
   function go(t: TabId) { setTab(t); history.replaceState(null, '', `#${t}`); play('paper'); }
 
+  const [confirm, setConfirm] = useState<{ order: Order; status: string } | null>(null);
+  const [busyConfirm, setBusyConfirm] = useState(false);
+  const liveFiles = (o: Order) => orderFiles(o).filter((f) => !f.deleted_at);
+
+  /** Al pasar a "Listo" (o "Entregado") con archivos guardados, primero se pide confirmación porque se borran. */
+  function requestStatus(order: Order, status: string) {
+    if (order.status === status) return;
+    if ((status === 'listo' || status === 'entregado') && liveFiles(order).length) { setConfirm({ order, status }); play('paper'); return; }
+    void setStatus(order, status);
+  }
+
   async function setStatus(order: Order, status: string) {
     setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status } : o)));
     const { error } = await supabase.from('orders').update({ status }).eq('id', order.id);
-    if (error) { say('No se pudo cambiar el estado'); play('error'); } else { say(`${orderCode(order.number)} → ${STATUS_LABELS[status]}`); play('stamp'); }
+    if (error) { say('No se pudo cambiar el estado'); play('error'); return false; }
+    say(`${orderCode(order.number)} → ${STATUS_LABELS[status]}`); play('stamp');
+    return true;
   }
+
+  async function confirmAndDelete() {
+    if (!confirm) return;
+    const { order, status } = confirm;
+    setBusyConfirm(true);
+    const ok = await setStatus(order, status);
+    if (ok) {
+      const files = liveFiles(order);
+      const { error } = await supabase.storage.from(BUCKET).remove(files.map((f) => f.path));
+      if (error) { say('El estado cambió, pero no se pudieron borrar los archivos'); play('error'); }
+      else {
+        const now = new Date().toISOString();
+        await supabase.from('order_files').update({ deleted_at: now }).in('id', files.map((f) => f.id));
+        setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, order_files: (o.order_files ?? []).map((f) => ({ ...f, deleted_at: now })) } : o)));
+        say(`${orderCode(order.number)} → ${STATUS_LABELS[status]} · archivos borrados`); play('cut');
+      }
+    }
+    setBusyConfirm(false);
+    setConfirm(null);
+  }
+
+  useEffect(() => {
+    if (!confirm) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busyConfirm) setConfirm(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirm, busyConfirm]);
 
   async function download(path: string, name: string) {
     const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300, { download: name });
@@ -180,10 +220,12 @@ export default function PanelPage() {
                 <div className="porder__actions">
                   <div className="statusbar" role="group" aria-label="Estado">
                     {Object.entries(STATUS_LABELS).map(([v, l]) => (
-                      <button key={v} className={`chip chip--${v}${o.status === v ? ' is-on' : ''}`} onClick={() => void setStatus(o, v)} data-sfx="none">{l}</button>
+                      <button key={v} className={`chip chip--${v}${o.status === v ? ' is-on' : ''}`} onClick={() => requestStatus(o, v)} data-sfx="none">{l}</button>
                     ))}
                   </div>
-                  {orderFiles(o).map((f) => (
+                  {orderFiles(o).map((f) => f.deleted_at ? (
+                    <span key={f.id} className="filebtn filebtn--gone" title={`Borrado el ${new Date(f.deleted_at).toLocaleString('es-AR')}`}><Trash /> {f.file_name} · archivo borrado</span>
+                  ) : (
                     <button key={f.id} className="filebtn" onClick={() => void download(f.path, f.file_name)}><Download /> {f.file_name}</button>
                   ))}
                   <div className="porder__row">
@@ -206,6 +248,21 @@ export default function PanelPage() {
       {tab === 'web' && <WebPane say={say} />}
       {tab === 'equipo' && <TeamPane say={say} team={team} me={session.user.email ?? ''} />}
       {tab === 'mantenimiento' && <MaintenancePane say={say} orders={orders} reload={load} />}
+      {confirm && (
+        <div className="pmodal" role="dialog" aria-modal="true" aria-labelledby="pmodal-t" onClick={(e) => { if (e.target === e.currentTarget && !busyConfirm) setConfirm(null); }}>
+          <div className="pmodal__card">
+            <Icon3D name="copies" size={96} eager />
+            <h2 id="pmodal-t">¿Marcar {orderCode(confirm.order.number)} como “{STATUS_LABELS[confirm.status]}”?</h2>
+            <p>Se van a <b>borrar {liveFiles(confirm.order).length === 1 ? 'el archivo' : `los ${liveFiles(confirm.order).length} archivos`}</b> de este pedido para liberar espacio. El pedido y su ticket quedan en el historial.</p>
+            <ul>{liveFiles(confirm.order).map((f) => <li key={f.id}>{f.file_name}</li>)}</ul>
+            <p className="hint">Si todavía no lo imprimiste, cancelá y descargalo primero.</p>
+            <div className="pmodal__row">
+              <button className="btn btn--line" onClick={() => setConfirm(null)} disabled={busyConfirm} autoFocus>Cancelar</button>
+              <button className="btn btn--ink" onClick={() => void confirmAndDelete()} disabled={busyConfirm}>{busyConfirm ? 'Borrando…' : <><Trash /> Confirmar</>}</button>
+            </div>
+          </div>
+        </div>
+      )}
       <Toast text={toast} />
     </div>
   );
@@ -407,7 +464,7 @@ function MaintenancePane({ say, orders, reload }: { say: (t: string) => void; or
   }, [refresh]);
 
   const old = orders.filter((o) => ['entregado', 'cancelado'].includes(o.status) && Date.now() - new Date(o.created_at).getTime() > 30 * 864e5);
-  const oldFiles = old.flatMap((o) => orderFiles(o).map((f) => f.path));
+  const oldFiles = old.flatMap((o) => orderFiles(o).filter((f) => !f.deleted_at).map((f) => f.path));
 
   async function setMaint(v: boolean) {
     const err = await saveSettings((s) => ({ ...s, maintenance: v }));
@@ -419,7 +476,10 @@ function MaintenancePane({ say, orders, reload }: { say: (t: string) => void; or
     setBusy(true);
     const { error } = await supabase.storage.from(BUCKET).remove(oldFiles);
     setBusy(false);
-    if (error) { say('No se pudo liberar espacio'); play('error'); } else { say('Espacio liberado'); play('cut'); refresh(); void reload(); }
+    if (error) { say('No se pudo liberar espacio'); play('error'); return; }
+    const ids = old.flatMap((o) => orderFiles(o).filter((f) => !f.deleted_at).map((f) => f.id));
+    await supabase.from('order_files').update({ deleted_at: new Date().toISOString() }).in('id', ids);
+    say('Espacio liberado'); play('cut'); refresh(); void reload();
   }
 
   const mb = (b: number) => `${(b / 1048576).toFixed(1)} MB`;

@@ -1177,3 +1177,14 @@ html[data-perf='low'] .tile__icon, html[data-perf='low'] .hours__clock .icon3d {
 .bulk-note { margin: 0 0 10px; padding: 10px 14px; border-radius: 14px; background: var(--paper-2); font-size: 14px; font-weight: 600; }
 .bulk-note.is-on { background: #fff2bf; box-shadow: 0 0 0 1.5px var(--sun-deep); }
 .summary__bulk { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: var(--sun); color: var(--ink); font-style: normal; font-size: 12px; font-weight: 700; width: fit-content; }
+
+/* Confirmar borrado de archivos */
+.filebtn--gone { color: var(--ink-soft); background: transparent; box-shadow: inset 0 0 0 1px var(--line); cursor: default; text-decoration: line-through; text-decoration-color: rgba(11, 11, 10, .3); }
+.pmodal { position: fixed; inset: 0; z-index: 160; display: grid; place-items: center; padding: 20px; background: rgba(11, 11, 10, .55); animation: fade-in .2s ease; }
+.pmodal__card { display: grid; gap: 10px; justify-items: start; width: min(100%, 460px); padding: 26px; border-radius: var(--r-xl); background: var(--white); box-shadow: 0 30px 60px rgba(0, 0, 0, .3); animation: rise .35s var(--out); }
+.pmodal__card .icon3d { width: 84px; margin: -10px 0 -4px -8px; }
+.pmodal__card h2 { margin: 0; font-size: 1.45rem; font-weight: 800; font-stretch: 85%; letter-spacing: -.02em; line-height: 1.1; }
+.pmodal__card p { margin: 0; color: var(--ink-soft); }
+.pmodal__card p b { color: var(--ink); }
+.pmodal__card ul { margin: 0; padding: 10px 14px 10px 30px; width: 100%; border-radius: 12px; background: var(--paper); font-size: 14px; overflow-wrap: anywhere; }
+.pmodal__row { display: flex; gap: 10px; justify-content: flex-end; width: 100%; margin-top: 6px; }
