@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRef, useState, type PointerEvent } from 'react';
-import { formatMoney, sheetsFor, type Sides } from '../lib/config';
+import { bulkActive, carilla, formatMoney, priceOrder, type Sides } from '../lib/config';
 import { useLive } from '../lib/settings';
 import { play } from '../lib/sound';
 import { ArrowUpRight, Icon3D } from './icons';
@@ -36,12 +36,14 @@ function Stepper({ label, value, set, min = 1, max = 2000 }: { label: string; va
 }
 
 export default function Prices() {
-  const { prices } = useLive();
+  const { prices, settings } = useLive();
+  const bulk = settings.bulk;
   const [pages, setPages] = useState(10);
   const [copies, setCopies] = useState(1);
   const [sides, setSides] = useState<Sides>('simple');
-  const sheets = sheetsFor(pages, sides) * copies;
-  const total = sheets * prices[sides];
+  const calc = priceOrder([{ pages, copies, sides }], prices, bulk);
+  const sheets = calc.sheets;
+  const total = calc.total;
 
   return (
     <section className="prices" id="precios">
@@ -66,6 +68,9 @@ export default function Prices() {
             <p className="price-card__k">Doble faz</p>
             <p className="price-card__v">{formatMoney(prices.doble)}</p>
             <p className="price-card__n">por hoja · dos páginas por hoja</p>
+            {bulkActive(bulk) && (
+              <p className="price-card__bulk">Desde {bulk.minSheets} hojas: <b>{formatMoney(bulk.dobleSheetPrice)}</b> por hoja · <b>{carilla(bulk.dobleSheetPrice)}</b> la carilla</p>
+            )}
           </div>
         </Tilt>
 
@@ -86,7 +91,7 @@ export default function Prices() {
             ))}
           </div>
           <div className="calc__out" aria-live="polite">
-            <span>{sheets} {sheets === 1 ? 'hoja' : 'hojas'}</span>
+            <span>{sheets} {sheets === 1 ? 'hoja' : 'hojas'}{calc.applied ? ' · precio por cantidad' : ''}</span>
             <strong key={total} className="pop-num">{formatMoney(total)}</strong>
           </div>
           <Link href="/pedido" className="btn btn--sun btn--block" data-sfx="pop" onClick={() => play('paper')}>Subir mis archivos <ArrowUpRight /></Link>

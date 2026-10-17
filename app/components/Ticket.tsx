@@ -88,6 +88,9 @@ export default function Ticket({ order, variant, settings, className = '' }: Pro
 
       <div className="ticket__rule" />
       <p className="ticket__line"><span>Total de hojas</span><span>{totalSheets}</span></p>
+      {settings.bulk.enabled && files.some((f) => f.sides === 'doble' && f.subtotal === sheetsFor(f.pages, f.sides) * f.copies * settings.bulk.dobleSheetPrice) && (
+        <p className="ticket__line"><span>Precio por cantidad</span><span>doble faz {formatMoney(settings.bulk.dobleSheetPrice)}/hoja</span></p>
+      )}
       <p className="ticket__total"><span>TOTAL</span><span>{formatMoney(order.total)}</span></p>
 
       <div className="ticket__rule" />

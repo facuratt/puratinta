@@ -124,3 +124,7 @@ begin
 end $$;
 
 -- 4) create_order ahora respeta "pausar pedidos" y el modo mantenimiento (ver la función en Supabase).
+
+-- 5) Precio por cantidad (17/10/2026): site_settings.data.bulk = { enabled, minSheets, dobleSheetPrice }.
+--    create_order suma las hojas doble faz de todo el pedido; si llegan a minSheets, todas las hojas doble faz
+--    se cobran a dobleSheetPrice (por defecto: desde 50 hojas, $120 la hoja = $60 la carilla). Editable desde el panel.

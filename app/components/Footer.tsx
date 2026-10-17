@@ -62,6 +62,7 @@ export default function Footer() {
           <h3 className="mt">Fotocopias B/N</h3>
           <p><span>Simple faz</span><b>{formatMoney(prices.simple)}</b></p>
           <p><span>Doble faz</span><b>{formatMoney(prices.doble)}</b></p>
+          {settings.bulk.enabled && <p><span>Doble faz desde {settings.bulk.minSheets} hojas</span><b>{formatMoney(settings.bulk.dobleSheetPrice)}</b></p>}
         </div>
         <div className="footer__col">
           <h3>Contacto</h3>

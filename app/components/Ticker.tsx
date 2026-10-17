@@ -10,6 +10,7 @@ export default function Ticker({ tone = 'ink' }: { tone?: 'ink' | 'paper' | 'vio
     'Fotocopias B/N',
     `Simple faz ${formatMoney(prices.simple)}`,
     `Doble faz ${formatMoney(prices.doble)}`,
+    ...(settings.bulk.enabled ? [`Desde ${settings.bulk.minSheets} hojas doble faz ${formatMoney(settings.bulk.dobleSheetPrice / 2)} la carilla`] : []),
     'Subí tus archivos',
     'Retiralos impresos',
     `${settings.hours.weekdays.label} ${settings.hours.weekdays.open} a ${settings.hours.weekdays.close}`,

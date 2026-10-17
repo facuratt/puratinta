@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
-import { BUSINESS, formatMoney, sheetsFor, subtotalFor, whatsappUrl, type Sides } from '../lib/config';
+import { BUSINESS, bulkActive, carilla, formatMoney, priceOrder, sheetsFor, whatsappUrl, type Sides } from '../lib/config';
 import { useLive } from '../lib/settings';
 import { play } from '../lib/sound';
 import { BUCKET, orderCode, supabase, type Order } from '../lib/supabase';
@@ -61,8 +61,10 @@ export default function OrderForm() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const closed = !settings.ordersOpen || settings.maintenance;
-  const total = items.reduce((n, it) => n + subtotalFor(it.pages, it.copies, it.sides, prices), 0);
-  const sheets = items.reduce((n, it) => n + sheetsFor(it.pages, it.sides) * it.copies, 0);
+  const pricing = priceOrder(items, prices, settings.bulk);
+  const total = pricing.total;
+  const sheets = pricing.sheets;
+  const bulk = settings.bulk;
 
   useEffect(() => {
     try { const d = JSON.parse(localStorage.getItem(DRAFT) || 'null'); if (d) setForm((f) => ({ ...f, name: d.name || '', phone: d.phone || '', email: d.email || '' })); } catch {}
@@ -118,11 +120,12 @@ export default function OrderForm() {
       '',
       ...items.map((it, i) => {
         const sh = sheetsFor(it.pages, it.sides) * it.copies;
-        return `${i + 1}. ${it.file.name} — ${it.copies} ${it.copies === 1 ? 'copia' : 'copias'} B/N ${it.sides === 'doble' ? 'doble faz' : 'simple faz'}, ${it.pages} pág. = ${sh} ${sh === 1 ? 'hoja' : 'hojas'} (${formatMoney(subtotalFor(it.pages, it.copies, it.sides, prices))})`;
+        return `${i + 1}. ${it.file.name} — ${it.copies} ${it.copies === 1 ? 'copia' : 'copias'} B/N ${it.sides === 'doble' ? 'doble faz' : 'simple faz'}, ${it.pages} pág. = ${sh} ${sh === 1 ? 'hoja' : 'hojas'} (${formatMoney(pricing.lines[i].subtotal)})`;
       }),
       ...(form.notes.trim() ? ['', `📝 ${form.notes.trim()}`] : []),
       '',
       `Total de hojas: ${sheets}`,
+      ...(pricing.applied ? [`Precio por cantidad: doble faz a ${formatMoney(bulk.dobleSheetPrice)} la hoja (desde ${bulk.minSheets} hojas)`] : []),
       `Total estimado: *${formatMoney(total)}*`,
       '',
       `Te mando ${items.length === 1 ? 'el archivo' : 'los archivos'} por acá 👇`,
@@ -176,7 +179,7 @@ export default function OrderForm() {
         id, number: result[0].order_number, total: result[0].order_total, created_at: new Date().toISOString(),
         customer_name: form.name.trim(), customer_phone: form.phone.trim(), customer_email: form.email.trim() || null,
         notes: form.notes.trim() || null, status: 'nuevo',
-        files: files.map((f, i) => ({ id: i, path: f.path, file_name: f.name, size_bytes: f.size, pages: f.pages, copies: f.copies, sides: f.sides, subtotal: subtotalFor(f.pages, f.copies, f.sides, prices) })),
+        files: files.map((f, i) => ({ id: i, path: f.path, file_name: f.name, size_bytes: f.size, pages: f.pages, copies: f.copies, sides: f.sides, subtotal: pricing.lines[i].subtotal })),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Algo salió mal. Probá de nuevo.');
@@ -244,8 +247,15 @@ export default function OrderForm() {
                     <button type="button" className="chip" onClick={() => setAllSides('doble')}>Doble faz</button>
                   </span>
                 </div>
+                {bulkActive(bulk) && pricing.dobleSheets > 0 && (
+                  <p className={`bulk-note${pricing.applied ? ' is-on' : ''}`} role="status">
+                    {pricing.applied
+                      ? <>🎉 Precio por cantidad aplicado: tus {pricing.dobleSheets} hojas doble faz salen {formatMoney(bulk.dobleSheetPrice)} c/u ({carilla(bulk.dobleSheetPrice)} la carilla).</>
+                      : <>Te {pricing.missing === 1 ? "falta" : "faltan"} {pricing.missing} {pricing.missing === 1 ? "hoja" : "hojas"} doble faz para el precio por cantidad: {formatMoney(bulk.dobleSheetPrice)} la hoja ({carilla(bulk.dobleSheetPrice)} la carilla).</>}
+                  </p>
+                )}
                 <ul className="files">
-                  {items.map((it) => {
+                  {items.map((it, idx) => {
                     const sh = sheetsFor(it.pages, it.sides) * it.copies;
                     return (
                       <li key={it.key} className="file">
@@ -278,7 +288,7 @@ export default function OrderForm() {
                           {it.pagesGuessed && <p className="file__hint">No pudimos contar las páginas de este archivo: revisá la cantidad.</p>}
                         </div>
                         <div className="file__side">
-                          <span className="file__sub">{formatMoney(subtotalFor(it.pages, it.copies, it.sides, prices))}</span>
+                          <span className="file__sub">{formatMoney(pricing.lines[idx].subtotal)}</span>
                           <small>{sh} {sh === 1 ? 'hoja' : 'hojas'}</small>
                           <button type="button" className="icon-btn icon-btn--sm" aria-label={`Quitar ${it.file.name}`}
                             onClick={() => { setItems((prev) => prev.filter((p) => p.key !== it.key)); play('paper'); }} data-sfx="none"><Trash /></button>
@@ -323,11 +333,11 @@ export default function OrderForm() {
               {form.email && <div className="review__row"><span>Email</span><b>{form.email}</b></div>}
               {form.notes && <div className="review__row review__row--wide"><span>Indicaciones</span><b>{form.notes}</b></div>}
               <ul className="review__files">
-                {items.map((it) => (
+                {items.map((it, idx) => (
                   <li key={it.key}>
                     <span>{it.file.name}</span>
                     <small>{it.copies} {it.copies === 1 ? 'copia' : 'copias'} · {it.sides === 'doble' ? 'doble faz' : 'simple faz'} · {it.pages} pág.</small>
-                    <b>{formatMoney(subtotalFor(it.pages, it.copies, it.sides, prices))}</b>
+                    <b>{formatMoney(pricing.lines[idx].subtotal)}</b>
                   </li>
                 ))}
               </ul>
@@ -375,7 +385,9 @@ export default function OrderForm() {
             <div className="summary__prices">
               <span>Simple faz <b>{formatMoney(prices.simple)}</b></span>
               <span>Doble faz <b>{formatMoney(prices.doble)}</b></span>
-              <small>por hoja · fotocopias B/N</small>
+              {bulkActive(bulk) && <span>Doble faz desde {bulk.minSheets} hojas <b>{formatMoney(bulk.dobleSheetPrice)}</b></span>}
+              <small>por hoja · fotocopias B/N{bulkActive(bulk) ? ` · ${carilla(bulk.dobleSheetPrice)} la carilla` : ''}</small>
+              {pricing.applied && <em className="summary__bulk">Precio por cantidad aplicado</em>}
             </div>
             <ol className="summary__steps">
               {TABS.map((t, i) => <li key={t} className={i <= tab ? 'is-on' : ''}>{t}</li>)}

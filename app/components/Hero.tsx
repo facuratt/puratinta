@@ -62,6 +62,7 @@ export default function Hero() {
               <p className="flyer-card__k">Fotocopias B/N</p>
               <p className="flyer-card__row"><span>Simple faz</span><b>{formatMoney(prices.simple)}</b></p>
               <p className="flyer-card__row"><span>Doble faz</span><b>{formatMoney(prices.doble)}</b></p>
+              {settings.bulk.enabled && <p className="flyer-card__row small"><span>Doble faz desde {settings.bulk.minSheets} hojas</span><b>{formatMoney(settings.bulk.dobleSheetPrice)}</b></p>}
               <span className="rule" />
               <p className="flyer-card__k">Horarios de atención</p>
               <p className="flyer-card__row small"><span>{settings.hours.weekdays.label}</span><b>{settings.hours.weekdays.open} a {settings.hours.weekdays.close}</b></p>

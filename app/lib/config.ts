@@ -24,6 +24,8 @@ export type SiteSettings = {
   hours: { weekdays: DayHours; weekend: DayHours };
   mercadoPagoAlias: string;
   pausedMessage: string;
+  /** Precio por cantidad: desde `minSheets` hojas doble faz en el pedido, cada hoja doble faz sale `dobleSheetPrice`. */
+  bulk: { enabled: boolean; minSheets: number; dobleSheetPrice: number };
 };
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   },
   mercadoPagoAlias: '',
   pausedMessage: 'Por hoy no estamos tomando pedidos online. Escribinos por WhatsApp.',
+  bulk: { enabled: true, minSheets: 50, dobleSheetPrice: 120 },
 };
 
 // Solo estos correos pueden entrar al panel (SHA-256, para no publicar las direcciones).
@@ -61,6 +64,34 @@ export const formatMoney = (n: number) => `$${Math.round(n).toLocaleString('es-A
 export const sheetsFor = (pages: number, sides: Sides) => (sides === 'doble' ? Math.ceil(pages / 2) : pages);
 export const subtotalFor = (pages: number, copies: number, sides: Sides, prices: Prices) =>
   sheetsFor(pages, sides) * copies * prices[sides];
+
+type Bulk = SiteSettings['bulk'];
+export const bulkActive = (b: Bulk) => b.enabled && b.minSheets > 0 && b.dobleSheetPrice > 0;
+
+/**
+ * Precios de un pedido completo, igual que los calcula el servidor (create_order):
+ * si el pedido suma `minSheets` o más hojas doble faz, todas las hojas doble faz van al precio por cantidad.
+ */
+export function priceOrder(items: { pages: number; copies: number; sides: Sides }[], prices: Prices, bulk: Bulk) {
+  const dobleSheets = items.reduce((n, it) => n + (it.sides === 'doble' ? sheetsFor(it.pages, 'doble') * it.copies : 0), 0);
+  const applied = bulkActive(bulk) && dobleSheets >= bulk.minSheets;
+  const unit = (s: Sides) => (s === 'doble' && applied ? bulk.dobleSheetPrice : prices[s]);
+  const lines = items.map((it) => {
+    const sheets = sheetsFor(it.pages, it.sides) * it.copies;
+    return { sheets, unit: unit(it.sides), subtotal: sheets * unit(it.sides) };
+  });
+  return {
+    lines,
+    total: lines.reduce((n, l) => n + l.subtotal, 0),
+    sheets: lines.reduce((n, l) => n + l.sheets, 0),
+    dobleSheets,
+    applied,
+    missing: bulkActive(bulk) && !applied && dobleSheets > 0 ? bulk.minSheets - dobleSheets : 0,
+  };
+}
+
+/** "$60 la carilla": medio precio de hoja doble faz. */
+export const carilla = (sheetPrice: number) => formatMoney(sheetPrice / 2);
 
 export const STATUS_LABELS: Record<string, string> = {
   nuevo: 'Nuevo',

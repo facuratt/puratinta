@@ -235,13 +235,14 @@ function PricesPane({ say }: { say: (t: string) => void }) {
   const live = useLive();
   const [prices, setPrices] = useState(live.prices);
   const [hours, setHours] = useState(live.settings.hours);
+  const [bulk, setBulk] = useState(live.settings.bulk);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { setPrices(live.prices); setHours(live.settings.hours); }, [live.prices, live.settings.hours]);
+  useEffect(() => { setPrices(live.prices); setHours(live.settings.hours); setBulk(live.settings.bulk); }, [live.prices, live.settings.hours, live.settings.bulk]);
 
   async function save() {
     setBusy(true);
     const r = await Promise.all((['simple', 'doble'] as const).map((s) => supabase.from('prices').update({ price_per_sheet: Math.max(0, Math.round(prices[s])) }).eq('sides', s)));
-    const e2 = await saveSettings((s) => ({ ...s, hours }));
+    const e2 = await saveSettings((s) => ({ ...s, hours, bulk: { enabled: bulk.enabled, minSheets: Math.max(1, Math.round(bulk.minSheets)), dobleSheetPrice: Math.max(0, Math.round(bulk.dobleSheetPrice)) } }));
     setBusy(false);
     if (r.some((x) => x.error) || e2) { say('No se pudo guardar'); play('error'); } else { say('Guardado: la web ya muestra los cambios'); play('ding'); }
   }
@@ -255,6 +256,16 @@ function PricesPane({ say }: { say: (t: string) => void }) {
           <label className="field">Doble faz ($)<input type="number" min={0} value={prices.doble} onChange={(e) => setPrices({ ...prices, doble: Number(e.target.value) })} /></label>
         </div>
         <p className="hint">Estos precios los usa el sistema para calcular el total de cada pedido (y se ven en toda la web).</p>
+      </div>
+      <div className="pcard">
+        <h2><Icon3D name="printer" size={48} /> Precio por cantidad · doble faz</h2>
+        <Switch on={bulk.enabled} set={(v) => setBulk({ ...bulk, enabled: v })} label={bulk.enabled ? 'Activo' : 'Desactivado'}
+          hint="Si el pedido suma esa cantidad de hojas doble faz o más, todas sus hojas doble faz van a este precio." />
+        <div className="pgrid">
+          <label className="field">Desde (hojas doble faz)<input type="number" min={1} value={bulk.minSheets} onChange={(e) => setBulk({ ...bulk, minSheets: Number(e.target.value) })} /></label>
+          <label className="field">Precio por hoja ($)<input type="number" min={0} value={bulk.dobleSheetPrice} onChange={(e) => setBulk({ ...bulk, dobleSheetPrice: Number(e.target.value) })} /></label>
+        </div>
+        <p className="hint">Ejemplo: {Math.round(bulk.minSheets)} hojas doble faz = {formatMoney(bulk.minSheets * bulk.dobleSheetPrice)} ({formatMoney(bulk.dobleSheetPrice / 2)} la carilla).</p>
       </div>
       <div className="pcard">
         <h2><Icon3D name="clock" size={48} /> Horarios de atención</h2>
