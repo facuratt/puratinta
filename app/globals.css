@@ -1150,7 +1150,8 @@ html.has-announcement .phead { padding-top: calc(var(--nav-h) + 110px); }
 .pay__alias code { display: block; font-family: var(--mono); font-size: clamp(15px, 4.3vw, 19px); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pay__alias .btn { flex: none; }
 .pay__label { margin: 4px 0 0; font-size: 14px; font-weight: 700; }
-.pay__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pay__actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.pay .pay__wa { min-height: 54px; font-size: 16px; justify-content: center; }
 .pay__actions .btn { justify-content: center; min-height: 46px; padding: 0 10px; font-size: 14px; white-space: normal; text-align: center; line-height: 1.15; }
 .pay__fine { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-soft); }
 .pay__ok { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 12px; border-radius: 12px; background: #dff7e5; font-size: 14.5px; font-weight: 700; }

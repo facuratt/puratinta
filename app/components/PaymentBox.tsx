@@ -58,15 +58,17 @@ export function PaymentNotice({ total, settings }: { total: number; settings: Si
       <p className="pay__title">Pago para confirmar</p>
       <p className="pay__warn">{notConfirmedText(settings.depositPct)}</p>
       <PayInfo total={total} settings={settings} />
-      <p className="pay__fine">Después de enviar el pedido, mandanos el comprobante: lo podés subir acá mismo o mandarlo por WhatsApp.</p>
+      <p className="pay__fine">Después de enviar el pedido se abre un botón directo a nuestro WhatsApp para mandar el comprobante (o lo podés subir acá).</p>
     </div>
   );
 }
 
 /** Después de crear el pedido: datos de pago + subir el comprobante o mandarlo por WhatsApp. */
-export default function PaymentBox({ order, settings }: {
+export default function PaymentBox({ order, settings, waMessage }: {
   order: { id: string; number: number; total: number; customer_name: string };
   settings: SiteSettings;
+  /** Mensaje completo para WhatsApp (pedido + pago). Si falta, solo el del comprobante. */
+  waMessage?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
@@ -99,18 +101,24 @@ export default function PaymentBox({ order, settings }: {
       <PayInfo total={order.total} settings={settings} />
 
       {state === 'done' ? (
-        <p className="pay__ok"><Check /> ¡Recibimos tu comprobante! Lo revisamos y te confirmamos el pedido por WhatsApp.</p>
+        <>
+          <p className="pay__ok"><Check /> ¡Recibimos tu comprobante! Lo revisamos y te confirmamos el pedido por WhatsApp.</p>
+          <a className="btn btn--wa pay__wa" href={whatsappUrl(waMessage ?? receiptMessage(order, settings))} target="_blank" rel="noopener noreferrer" data-sfx="pop">
+            <WhatsAppGlyph /> Avisar por WhatsApp
+          </a>
+        </>
       ) : (
         <>
-          <p className="pay__label">Mandanos el comprobante como te quede más cómodo:</p>
+          <p className="pay__label">Avisanos y mandanos el comprobante por WhatsApp: es lo más rápido.</p>
           <div className="pay__actions">
-            <button type="button" className="btn btn--sun" onClick={() => inputRef.current?.click()} disabled={state === 'uploading'} data-sfx="click">
-              <Upload /> {state === 'uploading' ? 'Subiendo…' : 'Subir comprobante'}
-            </button>
-            <a className="btn btn--wa" href={whatsappUrl(receiptMessage(order, settings))} target="_blank" rel="noopener noreferrer" data-sfx="pop">
-              <WhatsAppGlyph /> Por WhatsApp
+            <a className="btn btn--wa pay__wa" href={whatsappUrl(waMessage ?? receiptMessage(order, settings))} target="_blank" rel="noopener noreferrer" data-sfx="pop">
+              <WhatsAppGlyph /> Abrir WhatsApp con mi pedido
             </a>
+            <button type="button" className="btn btn--line" onClick={() => inputRef.current?.click()} disabled={state === 'uploading'} data-sfx="click">
+              <Upload /> {state === 'uploading' ? 'Subiendo…' : 'O subí el comprobante acá'}
+            </button>
           </div>
+          <p className="pay__fine">Se abre el chat con {BUSINESS.whatsappDisplay} con todo tu pedido escrito: adjuntá la foto del comprobante y enviá.</p>
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ''; }} />
           {error && <p className="pay__error" role="alert">{error}</p>}

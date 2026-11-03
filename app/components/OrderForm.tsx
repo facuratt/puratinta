@@ -55,7 +55,6 @@ export default function OrderForm() {
   const [pct, setPct] = useState(0);
   const [error, setError] = useState('');
   const [order, setOrder] = useState<Order | null>(null);
-  const [mailed, setMailed] = useState<boolean | null>(null);
   const [sentWa, setSentWa] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const inputRef = useRef<HTMLInputElement>(null);
@@ -177,8 +176,7 @@ export default function OrderForm() {
       setPct(100);
       // Aviso por email a Pura Tinta. No bloquea al cliente.
       supabase.functions.invoke('notify-order', { body: { id } })
-        .then(({ data }) => setMailed(Boolean((data as { sent?: boolean } | null)?.sent)))
-        .catch(() => setMailed(false));
+        .catch(() => {});
       setOrder({
         id, number: result[0].order_number, total: result[0].order_total, created_at: new Date().toISOString(),
         customer_name: form.name.trim(), customer_phone: form.phone.trim(), customer_email: form.email.trim() || null,
@@ -199,7 +197,6 @@ export default function OrderForm() {
     setItems([]);
     setForm((f) => ({ ...f, notes: '' }));
     setOrder(null);
-    setMailed(null);
     setTab(0);
     setPct(0);
   }
@@ -405,17 +402,10 @@ export default function OrderForm() {
       {order && (
         <Printer3D
           onClose={reset}
-          note={<>
-            <PaymentBox order={order} settings={settings} />
-            {mailed !== null && (
-              <p className="pr-note">{mailed ? '✉️ También le avisamos a Pura Tinta por mail.' : 'Mandá el aviso por WhatsApp así Pura Tinta lo ve al toque.'}</p>
-            )}
-          </>}
+          note={<PaymentBox order={order} settings={settings}
+            waMessage={`${orderMessage(order, settings)}\n\nTe mando el comprobante de pago acá 👇`} />}
           actions={
             <>
-              <a className="btn btn--paper" href={whatsappUrl(orderMessage(order, settings))} target="_blank" rel="noopener noreferrer" data-sfx="pop">
-                <WhatsAppGlyph /> Avisar del pedido por WhatsApp
-              </a>
               <button type="button" className="btn btn--paper" onClick={() => void downloadTicket(order, settings)}><Download /> Descargar ticket</button>
               <button type="button" className="btn btn--paper" onClick={() => window.print()}><Printer /> Imprimir / PDF</button>
               <button type="button" className="btn btn--ghost-light" onClick={reset}>Hacer otro pedido</button>
