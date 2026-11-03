@@ -23,6 +23,8 @@ export type SiteSettings = {
   announcement: { enabled: boolean; text: string };
   hours: { weekdays: DayHours; weekend: DayHours };
   mercadoPagoAlias: string;
+  /** Porcentaje del total que hay que pagar como seña para confirmar el pedido (o se paga el total). */
+  depositPct: number;
   pausedMessage: string;
   /** Precio por cantidad: desde `minSheets` hojas doble faz en el pedido, cada hoja doble faz sale `dobleSheetPrice`. */
   bulk: { enabled: boolean; minSheets: number; dobleSheetPrice: number };
@@ -37,6 +39,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     weekend: { label: 'Sábados y domingos', open: '10:00', close: '22:30' },
   },
   mercadoPagoAlias: '',
+  depositPct: 50,
   pausedMessage: 'Por hoy no estamos tomando pedidos online. Escribinos por WhatsApp.',
   bulk: { enabled: true, minSheets: 50, dobleSheetPrice: 120 },
 };
@@ -100,5 +103,19 @@ export const STATUS_LABELS: Record<string, string> = {
   entregado: 'Entregado',
   cancelado: 'Cancelado',
 };
+
+export type PaymentStatus = 'pendiente' | 'sena' | 'pagado';
+export const PAYMENT_LABELS: Record<PaymentStatus, string> = {
+  pendiente: 'Pago pendiente',
+  sena: 'Seña pagada',
+  pagado: 'Pagado total',
+};
+
+/** Seña para confirmar el pedido (redondeada hacia arriba al peso). */
+export const depositFor = (total: number, pct: number) => Math.ceil((total * Math.min(100, Math.max(1, pct || 50))) / 100);
+
+/** Aviso que se repite en todos lados: sin pago no hay pedido confirmado. */
+export const notConfirmedText = (pct: number) =>
+  `El pedido no está confirmado hasta que recibamos la seña (${Math.round(pct)}%) o el total.`;
 
 export const sidesLabel = (s: Sides) => (s === 'doble' ? 'doble faz' : 'simple faz');

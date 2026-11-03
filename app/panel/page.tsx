@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Icon3D, LogOut, Search, WhatsAppGlyph, Download, Printer, Trash } from '../components/icons';
+import { Check, Icon3D, LogOut, Search, WhatsAppGlyph, Download, Printer, Trash } from '../components/icons';
 import Ticket from '../components/Ticket';
-import { DEFAULT_SETTINGS, formatMoney, STATUS_LABELS, type DayHours, type SiteSettings } from '../lib/config';
+import { DEFAULT_SETTINGS, depositFor, formatMoney, PAYMENT_LABELS, STATUS_LABELS, type DayHours, type PaymentStatus, type SiteSettings } from '../lib/config';
 import { invalidateLive, useLive } from '../lib/settings';
 import { play } from '../lib/sound';
 import { BUCKET, orderCode, orderFiles, supabase, type Order } from '../lib/supabase';
@@ -109,6 +109,33 @@ export default function PanelPage() {
     return true;
   }
 
+  /** Pago: pendiente → seña → total. Sin seña o total el pedido no está confirmado. */
+  async function setPayment(order: Order, payment: PaymentStatus) {
+    if ((order.payment_status ?? 'pendiente') === payment) return;
+    setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, payment_status: payment } : o)));
+    const { error } = await supabase.from('orders').update({ payment_status: payment }).eq('id', order.id);
+    if (error) { say('No se pudo guardar el pago'); play('error'); void load(); return; }
+    say(`${orderCode(order.number)} → ${PAYMENT_LABELS[payment]}`); play(payment === 'pendiente' ? 'toggle' : 'ding');
+  }
+
+  /** Mensaje de WhatsApp al cliente según cómo está el pedido. */
+  function customerMessage(o: Order) {
+    const s = live.settings;
+    const pay = o.payment_status ?? 'pendiente';
+    const dep = depositFor(o.total, s.depositPct);
+    const alias = s.mercadoPagoAlias.trim();
+    if (o.status === 'listo') {
+      return `Hola ${o.customer_name}! Tu pedido ${orderCode(o.number)} de Pura Tinta ya está listo para retirar. Total: ${formatMoney(o.total)}.`
+        + (pay === 'sena' ? ` Te queda por abonar ${formatMoney(Math.max(0, o.total - dep))}.` : pay === 'pendiente' ? ` Recordá que todavía no recibimos el pago.` : '');
+    }
+    if (pay === 'pendiente') {
+      return `Hola ${o.customer_name}! Recibimos tu pedido ${orderCode(o.number)} de Pura Tinta (${formatMoney(o.total)}). `
+        + `Para confirmarlo, transferí la seña de ${formatMoney(dep)} o el total${alias ? ` al alias ${alias}` : ''} y mandanos el comprobante. `
+        + `El pedido no está confirmado hasta recibir el pago. ¡Gracias!`;
+    }
+    return `Hola ${o.customer_name}! Recibimos tu pago ${pay === 'sena' ? `de la seña (${formatMoney(dep)})` : 'total'} y tu pedido ${orderCode(o.number)} ya está confirmado ✅ Te avisamos cuando esté listo para retirar.`;
+  }
+
   async function confirmAndDelete() {
     if (!confirm) return;
     const { order, status } = confirm;
@@ -195,6 +222,7 @@ export default function PanelPage() {
       {tab === 'pedidos' && (
         <section className="ppane" role="tabpanel">
           <div className="stats">
+            <div className="stats__warn"><span>Esperan pago</span><b>{orders.filter((o) => (o.payment_status ?? 'pendiente') === 'pendiente' && ['nuevo', 'en_proceso', 'listo'].includes(o.status)).length}</b></div>
             <div><span>Nuevos</span><b>{orders.filter((o) => o.status === 'nuevo').length}</b></div>
             <div><span>En proceso</span><b>{orders.filter((o) => o.status === 'en_proceso').length}</b></div>
             <div><span>Listos para retirar</span><b>{orders.filter((o) => o.status === 'listo').length}</b></div>
@@ -217,6 +245,24 @@ export default function PanelPage() {
               <article key={o.id} className={`porder status-${o.status}${q && orderCode(o.number).toLowerCase() === q ? ' is-hit' : ''}`}>
                 <Ticket order={o} variant="negocio" settings={live.settings} className={printing === o.id ? 'ticket--print' : ''} />
                 <div className="porder__actions">
+                  {(o.payment_status ?? 'pendiente') === 'pendiente' && o.status !== 'cancelado' && o.status !== 'entregado' && (
+                    <p className="porder__unpaid">Sin pago: el pedido todavía no está confirmado.</p>
+                  )}
+                  <div className="paybar" role="group" aria-label="Pago">
+                    <span>Pago</span>
+                    {(Object.keys(PAYMENT_LABELS) as PaymentStatus[]).map((v) => (
+                      <button key={v} className={`chip chip--pay-${v}${(o.payment_status ?? 'pendiente') === v ? ' is-on' : ''}`} onClick={() => void setPayment(o, v)} data-sfx="none">
+                        {v === 'pendiente' ? 'Pendiente' : v === 'sena' ? `Seña ${formatMoney(depositFor(o.total, live.settings.depositPct))}` : `Total ${formatMoney(o.total)}`}
+                      </button>
+                    ))}
+                  </div>
+                  {o.receipt_path ? (
+                    <button className="filebtn filebtn--receipt" onClick={() => void download(o.receipt_path!, `comprobante-${orderCode(o.number)}.${o.receipt_path!.split('.').pop()}`)}>
+                      <Check /> Ver comprobante de pago{o.receipt_at ? ` · ${new Date(o.receipt_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
+                    </button>
+                  ) : (
+                    <p className="porder__hint">Sin comprobante subido (puede llegar por WhatsApp).</p>
+                  )}
                   <div className="statusbar" role="group" aria-label="Estado">
                     {Object.entries(STATUS_LABELS).map(([v, l]) => (
                       <button key={v} className={`chip chip--${v}${o.status === v ? ' is-on' : ''}`} onClick={() => requestStatus(o, v)} data-sfx="none">{l}</button>
@@ -230,9 +276,7 @@ export default function PanelPage() {
                   <div className="porder__row">
                     <button className="btn btn--ink btn--sm" onClick={() => printTicket(o.id)}><Printer /> Imprimir ticket</button>
                     <a className="btn btn--wa btn--sm" target="_blank" rel="noopener noreferrer"
-                      href={customerWhatsapp(o.customer_phone, o.status === 'listo'
-                        ? `Hola ${o.customer_name}! Tu pedido ${orderCode(o.number)} de Pura Tinta ya está listo para retirar. Total: ${formatMoney(o.total)}.`
-                        : `Hola ${o.customer_name}! Te escribimos de Pura Tinta por tu pedido ${orderCode(o.number)}.`)}>
+                      href={customerWhatsapp(o.customer_phone, customerMessage(o))}>
                       <WhatsAppGlyph /> WhatsApp al cliente
                     </a>
                   </div>
@@ -355,7 +399,8 @@ function WebPane({ say }: { say: (t: string) => void }) {
 
   async function save() {
     setBusy(true);
-    const err = await saveSettings((cur) => ({ ...cur, ordersOpen: s.ordersOpen, announcement: s.announcement, mercadoPagoAlias: s.mercadoPagoAlias.trim(), pausedMessage: s.pausedMessage }));
+    const err = await saveSettings((cur) => ({ ...cur, ordersOpen: s.ordersOpen, announcement: s.announcement, mercadoPagoAlias: s.mercadoPagoAlias.trim(),
+      depositPct: Math.min(100, Math.max(1, Math.round(s.depositPct) || 50)), pausedMessage: s.pausedMessage }));
     const { error: e2 } = notify.trim() ? await supabase.rpc('admin_set_private', { p_key: 'notify_email', p_value: notify.trim() }) : { error: null };
     setBusy(false);
     if (err || e2) { say(e2 ? 'Revisá el email de avisos' : 'No se pudo guardar'); play('error'); } else { say('Guardado'); play('ding'); }
@@ -377,8 +422,11 @@ function WebPane({ say }: { say: (t: string) => void }) {
       </div>
       <div className="pcard">
         <h2><Icon3D name="card" size={48} /> Pagos y avisos por mail</h2>
-        <label className="field">Alias de Mercado Pago <small>(vacío = &quot;coordiná el pago por WhatsApp&quot;)</small>
-          <input value={s.mercadoPagoAlias} maxLength={60} placeholder="ej: pura.tinta.mp" onChange={(e) => setS({ ...s, mercadoPagoAlias: e.target.value })} /></label>
+        <label className="field">Alias para transferir <small>(vacío = &quot;coordiná el pago por WhatsApp&quot;)</small>
+          <input value={s.mercadoPagoAlias} maxLength={60} placeholder="ej: lourdes.varea" onChange={(e) => setS({ ...s, mercadoPagoAlias: e.target.value })} /></label>
+        <label className="field">Seña para confirmar el pedido (%) <small>(o pagan el total)</small>
+          <input type="number" min={1} max={100} value={s.depositPct} onChange={(e) => setS({ ...s, depositPct: Number(e.target.value) })} /></label>
+        <p className="hint">La web le muestra al cliente el alias, la seña y el total, y le aclara que el pedido no está confirmado hasta recibir el pago.</p>
         <label className="field">Email donde llegan los pedidos <small>(podés poner varios separados por coma)</small>
           <input type="text" value={notify} onChange={(e) => setNotify(e.target.value)} /></label>
       </div>

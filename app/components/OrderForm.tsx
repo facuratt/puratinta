@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
-import { BUSINESS, bulkActive, carilla, formatMoney, priceOrder, sheetsFor, whatsappUrl, type Sides } from '../lib/config';
+import { BUSINESS, bulkActive, carilla, depositFor, formatMoney, priceOrder, sheetsFor, whatsappUrl, type Sides } from '../lib/config';
 import { useLive } from '../lib/settings';
 import { play } from '../lib/sound';
 import { BUCKET, orderCode, supabase, type Order } from '../lib/supabase';
 import { downloadTicket, orderMessage } from '../lib/ticketImage';
 import { ArrowRight, Check, Chevron, Download, FileIcon, Icon3D, Printer, Trash, Upload, WhatsAppGlyph } from './icons';
+import PaymentBox, { PaymentNotice } from './PaymentBox';
 import Printer3D from './Printer3D';
 import Ticket from './Ticket';
 
@@ -41,7 +42,7 @@ const safeName = (name: string) =>
   name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-80);
 const prettySize = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 
-const TABS = ['Archivos', 'Tus datos', 'Confirmar'] as const;
+const TABS = ['Archivos', 'Tus datos', 'Enviar'] as const;
 const DRAFT = 'pt-cliente';
 
 export default function OrderForm() {
@@ -127,6 +128,9 @@ export default function OrderForm() {
       `Total de hojas: ${sheets}`,
       ...(pricing.applied ? [`Precio por cantidad: doble faz a ${formatMoney(bulk.dobleSheetPrice)} la hoja (desde ${bulk.minSheets} hojas)`] : []),
       `Total estimado: *${formatMoney(total)}*`,
+      `Seña para confirmar (${settings.depositPct}%): ${formatMoney(depositFor(total, settings.depositPct))}`,
+      ...(settings.mercadoPagoAlias.trim() ? [`Alias para transferir: ${settings.mercadoPagoAlias.trim()}`] : []),
+      `(Entiendo que el pedido queda confirmado cuando mande el comprobante de la seña o del total.)`,
       '',
       `Te mando ${items.length === 1 ? 'el archivo' : 'los archivos'} por acá 👇`,
     ];
@@ -343,7 +347,8 @@ export default function OrderForm() {
               </ul>
               <p className="review__note">{closed
                 ? 'Al tocar el botón se abre WhatsApp con tu pedido completo. Solo apretá enviar y adjuntá los archivos en el chat.'
-                : 'Al confirmar subimos tus archivos, se imprime tu ticket con el número de pedido y le avisamos a Pura Tinta.'}</p>
+                : 'Al enviar subimos tus archivos, se imprime tu ticket con el número de pedido y le avisamos a Pura Tinta.'}</p>
+              {items.length > 0 && <PaymentNotice total={total} settings={settings} />}
               {sentWa && <p className="form-ok">¡Listo! Si WhatsApp no se abrió, <a href={whatsappUrl(draftMessage())} target="_blank" rel="noopener noreferrer">tocá acá</a>.</p>}
             </div>
             {sending && (
@@ -358,7 +363,7 @@ export default function OrderForm() {
                 <button type="submit" className="btn btn--wa btn--lg" data-sfx="none"><WhatsAppGlyph /> Enviar pedido por WhatsApp · {formatMoney(total)}</button>
               ) : (
                 <button type="submit" className="btn btn--sun btn--lg" disabled={sending} data-sfx="stamp">
-                  {sending ? 'Enviando…' : <>Confirmar pedido · {formatMoney(total)}</>}
+                  {sending ? 'Enviando…' : <>Enviar pedido · {formatMoney(total)}</>}
                 </button>
               )}
             </div>
@@ -400,13 +405,16 @@ export default function OrderForm() {
       {order && (
         <Printer3D
           onClose={reset}
-          note={mailed === null ? null : (
-            <p className="pr-note">{mailed ? '✉️ También le avisamos a Pura Tinta por mail.' : 'Mandá el aviso por WhatsApp así Pura Tinta lo ve al toque.'}</p>
-          )}
+          note={<>
+            <PaymentBox order={order} settings={settings} />
+            {mailed !== null && (
+              <p className="pr-note">{mailed ? '✉️ También le avisamos a Pura Tinta por mail.' : 'Mandá el aviso por WhatsApp así Pura Tinta lo ve al toque.'}</p>
+            )}
+          </>}
           actions={
             <>
-              <a className="btn btn--wa" href={whatsappUrl(orderMessage(order))} target="_blank" rel="noopener noreferrer" data-sfx="pop">
-                <WhatsAppGlyph /> Enviar pedido por WhatsApp
+              <a className="btn btn--paper" href={whatsappUrl(orderMessage(order, settings))} target="_blank" rel="noopener noreferrer" data-sfx="pop">
+                <WhatsAppGlyph /> Avisar del pedido por WhatsApp
               </a>
               <button type="button" className="btn btn--paper" onClick={() => void downloadTicket(order, settings)}><Download /> Descargar ticket</button>
               <button type="button" className="btn btn--paper" onClick={() => window.print()}><Printer /> Imprimir / PDF</button>

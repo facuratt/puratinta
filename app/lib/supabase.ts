@@ -30,6 +30,9 @@ export type Order = {
   notes: string | null;
   total: number;
   status: string;
+  payment_status?: 'pendiente' | 'sena' | 'pagado';
+  receipt_path?: string | null;
+  receipt_at?: string | null;
   order_files?: OrderFile[];
   files?: OrderFile[];
 };

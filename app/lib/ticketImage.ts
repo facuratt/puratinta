@@ -1,6 +1,6 @@
 'use client';
 
-import { BUSINESS, formatMoney, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from './config';
+import { BUSINESS, depositFor, formatMoney, notConfirmedText, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from './config';
 import { orderCode, orderFiles, type Order } from './supabase';
 
 // Dibuja el ticket en un canvas para descargarlo como imagen (sirve para mandarlo por WhatsApp).
@@ -63,7 +63,8 @@ export async function ticketBlob(order: Order, settings: SiteSettings): Promise<
     text('COMPROBANTE DE PEDIDO', 18, 600, 'center');
     text(code, 52, 800, 'center');
     text(`${d.toLocaleDateString('es-AR', tz)} · ${d.toLocaleTimeString('es-AR', { ...tz, hour: '2-digit', minute: '2-digit', hour12: false })} h`, 20, 400, 'center');
-    text(`Estado: ${STATUS_LABELS[order.status] ?? order.status}`, 18, 400, 'center');
+    const unpaid = (order.payment_status ?? 'pendiente') === 'pendiente' && order.status === 'nuevo';
+    text(`Estado: ${unpaid ? 'Pendiente de pago' : STATUS_LABELS[order.status] ?? order.status}`, 18, 400, 'center');
     rule();
     text('CLIENTE', 16, 700);
     text(order.customer_name, 22, 700);
@@ -81,9 +82,14 @@ export async function ticketBlob(order: Order, settings: SiteSettings): Promise<
     rule();
     pair('Total de hojas', String(files.reduce((n, f) => n + sheetsFor(f.pages, f.sides) * f.copies, 0)));
     pair('TOTAL', formatMoney(order.total), 34, 800);
+    const deposit = depositFor(order.total, settings.depositPct);
+    pair(`Seña para confirmar (${settings.depositPct}%)`, formatMoney(deposit));
     rule();
     const alias = settings.mercadoPagoAlias.trim();
-    text(alias ? `Pagá por transferencia al alias de Mercado Pago ${alias} y mandá el comprobante por WhatsApp.` : `Coordiná el pago por WhatsApp al ${BUSINESS.whatsappDisplay}.`, 17, 400, 'center');
+    text(notConfirmedText(settings.depositPct), 18, 700, 'center');
+    text(alias
+      ? `Transferí la seña de ${formatMoney(deposit)} o el total de ${formatMoney(order.total)} al alias ${alias} y mandá el comprobante desde la web o por WhatsApp.`
+      : `Coordiná el pago de la seña o del total por WhatsApp al ${BUSINESS.whatsappDisplay}.`, 17, 400, 'center');
     text('Te avisamos por WhatsApp cuando esté listo para retirar.', 17, 400, 'center');
     text(`${settings.hours.weekdays.label} ${settings.hours.weekdays.open} a ${settings.hours.weekdays.close}`, 17, 400, 'center');
     text(`${settings.hours.weekend.label} ${settings.hours.weekend.open} a ${settings.hours.weekend.close}`, 17, 400, 'center');
@@ -120,7 +126,7 @@ export async function downloadTicket(order: Order, settings: SiteSettings) {
 }
 
 /** Texto completo del pedido, para WhatsApp. */
-export function orderMessage(order: Order) {
+export function orderMessage(order: Order, settings?: SiteSettings) {
   const files = orderFiles(order);
   const lines = [
     `Hola Pura Tinta! Hice el pedido *${orderCode(order.number)}* desde la web.`,
@@ -136,6 +142,10 @@ export function orderMessage(order: Order) {
     ...(order.notes ? ['', `📝 ${order.notes}`] : []),
     '',
     `Total: *${formatMoney(order.total)}*`,
+    ...(settings ? [
+      `Seña para confirmar (${settings.depositPct}%): ${formatMoney(depositFor(order.total, settings.depositPct))}`,
+      'Ya sé que el pedido queda confirmado cuando les llegue el comprobante de la seña o del total.',
+    ] : []),
     'Los archivos ya están subidos en la web. ¡Gracias!',
   ];
   return lines.join('\n');

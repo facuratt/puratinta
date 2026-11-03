@@ -30,6 +30,13 @@ Función `notify-order` (`supabase/functions/notify-order`). Manda la orden comp
 - Para usar **Resend**: Supabase → Edge Functions → Secrets → `RESEND_API_KEY` (y `ORDER_EMAIL_FROM` con dominio verificado).
 - `SITE_URL` (opcional) = la dirección pública, para el enlace al panel dentro del mail.
 
+## Pago para confirmar el pedido
+- El pedido **no está confirmado hasta recibir la seña (por defecto 50%) o el total**. Se aclara en el paso "Enviar", en la pantalla del ticket, en el ticket (en pantalla e imagen), en los mensajes de WhatsApp y en el mail del pedido.
+- Al enviar el pedido el cliente ve el alias (con botón "Copiar"), la seña y el total, y manda el comprobante **subiéndolo en la web** (foto o PDF, va a la carpeta del pedido) **o por WhatsApp** (mensaje armado).
+- Cuando suben un comprobante llega un mail "Comprobante de pago PT-xxxx" y en el panel aparece "Ver comprobante de pago".
+- En el panel, cada pedido tiene **Pago: Pendiente / Seña / Total**. Arriba, "Esperan pago" cuenta los activos sin pago. "WhatsApp al cliente" arma el mensaje según el caso (pedir el pago, confirmar, avisar que está listo y lo que falta abonar).
+- Alias y porcentaje de seña: Panel → Web y avisos → Pagos. Base: columnas `payment_status`, `receipt_path`, `receipt_at` en `orders` y la función `attach_receipt` (ver `supabase/migrations/20261103_pagos_y_comprobantes.sql`).
+
 ## Rendimiento
 `html[data-perf]` = `high` | `low`. Se decide antes del primer pintado (memoria, núcleos, ahorro de datos, movimiento reducido)
 y baja solo a liviano si los primeros segundos van lentos. Liviano: frames de Tinto en 560 px y menos cuadros, sin blur,

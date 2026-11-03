@@ -14,7 +14,7 @@ export default function PedidoPage() {
         <PageHead
           eyebrow="Hacer pedido"
           title={<>Subí tus archivos<br />y <em>retiralos impresos</em>.</>}
-          lede={<>1. Subí tus archivos y elegí copias y simple o doble faz. 2. Confirmá: te llevás tu ticket con el número de pedido. 3. Te avisamos por WhatsApp cuando esté listo.</>}
+          lede={<>1. Subí tus archivos y elegí copias y simple o doble faz. 2. Enviá el pedido y pagá la seña o el total por transferencia: con el comprobante queda confirmado. 3. Te avisamos por WhatsApp cuando esté listo.</>}
           icons={['printer', 'upload', 'ticket']}
         />
         <OrderForm />

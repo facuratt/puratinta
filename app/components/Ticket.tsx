@@ -1,4 +1,4 @@
-import { BUSINESS, formatMoney, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from '../lib/config';
+import { BUSINESS, depositFor, formatMoney, notConfirmedText, PAYMENT_LABELS, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from '../lib/config';
 import { orderCode, orderFiles, type Order } from '../lib/supabase';
 
 type Props = {
@@ -43,6 +43,11 @@ export default function Ticket({ order, variant, settings, className = '' }: Pro
   const totalSheets = files.reduce((n, f) => n + sheetsFor(f.pages, f.sides) * f.copies, 0);
   const code = orderCode(order.number);
   const alias = settings.mercadoPagoAlias.trim();
+  const payment = order.payment_status ?? 'pendiente';
+  const deposit = depositFor(order.total, settings.depositPct);
+  // Para el cliente, mientras no pague, el estado es "pendiente de pago" (todavía no está confirmado).
+  const stateLabel = variant === 'cliente' && payment === 'pendiente' && order.status === 'nuevo'
+    ? 'Pendiente de pago' : STATUS_LABELS[order.status] ?? order.status;
 
   return (
     <div className={`ticket ${className}`}>
@@ -52,7 +57,7 @@ export default function Ticket({ order, variant, settings, className = '' }: Pro
         <p className="ticket__kind">{variant === 'cliente' ? 'Comprobante de pedido' : 'Orden de trabajo'}</p>
         <p className="ticket__code">{code}</p>
         <p>{date} · {time} h</p>
-        <p className="ticket__state">Estado: {STATUS_LABELS[order.status] ?? order.status}</p>
+        <p className="ticket__state">Estado: {stateLabel}</p>
       </div>
 
       <div className="ticket__rule" />
@@ -92,13 +97,18 @@ export default function Ticket({ order, variant, settings, className = '' }: Pro
         <p className="ticket__line"><span>Precio por cantidad</span><span>doble faz {formatMoney(settings.bulk.dobleSheetPrice)}/hoja</span></p>
       )}
       <p className="ticket__total"><span>TOTAL</span><span>{formatMoney(order.total)}</span></p>
+      <p className="ticket__line"><span>Seña para confirmar ({settings.depositPct}%)</span><span>{formatMoney(deposit)}</span></p>
+      {variant === 'negocio' && (
+        <p className="ticket__line"><span>Pago</span><span>{PAYMENT_LABELS[payment]}{order.receipt_path ? ' · comprobante subido' : ''}</span></p>
+      )}
 
       <div className="ticket__rule" />
       {variant === 'cliente' ? (
         <div className="ticket__foot">
+          <p className="ticket__warn">{notConfirmedText(settings.depositPct)}</p>
           {alias
-            ? <p>Pagá por transferencia al alias de Mercado Pago <b>{alias}</b> y mandá el comprobante por WhatsApp.</p>
-            : <p>Coordiná el pago por WhatsApp al <b>{BUSINESS.whatsappDisplay}</b>.</p>}
+            ? <p>Transferí la seña de <b>{formatMoney(deposit)}</b> o el total de <b>{formatMoney(order.total)}</b> al alias <b>{alias}</b> y mandá el comprobante desde la web o por WhatsApp.</p>
+            : <p>Coordiná el pago de la seña o del total por WhatsApp al <b>{BUSINESS.whatsappDisplay}</b>.</p>}
           <p>Te avisamos por WhatsApp cuando esté listo para retirar. Mostrá este ticket o decí tu número de pedido.</p>
           <p className="ticket__hours">
             {settings.hours.weekdays.label} {settings.hours.weekdays.open} a {settings.hours.weekdays.close}<br />

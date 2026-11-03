@@ -8,6 +8,7 @@
 //   2) Si no, FormSubmit (gratis, sin clave). La primera vez FormSubmit manda un mail de activación
 //      al destino: hay que tocar "Activate" una sola vez y desde ahí llegan todos los pedidos.
 // Con { "ping": true } responde qué método está configurado, sin enviar nada (lo usa el panel).
+// Con { "id", "receipt": true } avisa que el cliente subió el comprobante de pago (una sola vez por comprobante).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const cors = {
@@ -45,12 +46,56 @@ Deno.serve(async (req) => {
 
   const id = body?.id;
   if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/.test(id)) return json({ sent: false }, 400);
+  const siteUrl = Deno.env.get('SITE_URL') || 'https://puratinta.pages.dev';
+
+  // Seña configurada en el panel (por defecto 50%).
+  const { data: st } = await supabase.from('site_settings').select('data').eq('id', 1).maybeSingle();
+  const pct = Math.min(100, Math.max(1, Number(st?.data?.depositPct) || 50));
+  const alias = String(st?.data?.mercadoPagoAlias || '').trim();
+  const deposit = (total: number) => Math.ceil((total * pct) / 100);
+
+  const send = async (subject: string, html: string, fields: Record<string, string>) => {
+    if (method === 'resend') {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: Deno.env.get('ORDER_EMAIL_FROM') || 'Pura Tinta <onboarding@resend.dev>', to, subject, html }),
+      });
+      return res.ok;
+    }
+    const results = await Promise.all(to.map((addr: string) =>
+      fetch(`https://formsubmit.co/ajax/${encodeURIComponent(addr)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Origin: siteUrl, Referer: `${siteUrl}/pedido` },
+        body: JSON.stringify({ _subject: subject, _template: 'table', _captcha: 'false', ...fields }),
+      }).then((r) => r.ok).catch(() => false)));
+    return results.some(Boolean);
+  };
+
+  if (body?.receipt) {
+    const { data: r } = await supabase.rpc('claim_receipt_notification', { p_id: id });
+    const rc = r as { number: number; customer_name: string; customer_phone: string; total: number } | null;
+    if (!rc) return json({ sent: false });
+    const subject = `Comprobante de pago ${code(rc.number)} — ${rc.customer_name}`;
+    const link = `${siteUrl}/panel?pedido=${code(rc.number)}`;
+    const html = `<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:20px;border:1px solid #ddd">
+      <h2 style="margin:0 0 8px">Llegó un comprobante de pago</h2>
+      <p><b>${code(rc.number)}</b> · ${escape(rc.customer_name)} · WhatsApp ${escape(rc.customer_phone)}</p>
+      <p>Seña (${pct}%): <b>${money(deposit(rc.total))}</b> · Total: <b>${money(rc.total)}</b></p>
+      <p>Revisalo en el panel y marcá si pagó la seña o el total: ahí el pedido queda confirmado.</p>
+      <p><a href="${link}">Abrir el pedido en el panel</a></p></div>`;
+    const sent = await send(subject, html, {
+      Pedido: code(rc.number), Cliente: rc.customer_name, WhatsApp: rc.customer_phone,
+      [`Seña (${pct}%)`]: money(deposit(rc.total)), Total: money(rc.total),
+      'Qué hacer': 'Revisar el comprobante en el panel y marcar seña o total pagado.', Panel: link,
+    });
+    return json({ sent, method });
+  }
 
   const { data } = await supabase.rpc('claim_order_notification', { p_id: id });
   const order = data as Order | null;
   if (!order) return json({ sent: false });
 
-  const siteUrl = Deno.env.get('SITE_URL') || 'https://puratinta.pages.dev';
   const subject = `Nuevo pedido ${code(order.number)} — ${order.customer_name} — ${money(order.total)}`;
   const totalSheets = order.files.reduce((n, f) => n + sheets(f), 0);
   const when = new Date(order.created_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
@@ -73,6 +118,7 @@ Deno.serve(async (req) => {
       ${order.notes ? `<p><b>Indicaciones:</b><br>${escape(order.notes).replace(/\n/g, '<br>')}</p>` : ''}
       <p>Total de hojas: <b>${totalSheets}</b></p>
       <h2>TOTAL ${money(order.total)}</h2>
+      <p style="padding:8px;background:#ffe7a3"><b>Pago pendiente:</b> seña (${pct}%) ${money(deposit(order.total))} o total ${money(order.total)}${alias ? ` al alias ${escape(alias)}` : ''}. El pedido no está confirmado hasta recibir el pago.</p>
       <p style="text-align:center"><a href="${siteUrl}/panel?pedido=${code(order.number)}">Abrir el panel para descargar los archivos</a></p>
     </div>`;
     const res = await fetch('https://api.resend.com/emails', {
@@ -101,6 +147,7 @@ Deno.serve(async (req) => {
   fields['Indicaciones'] = order.notes || '—';
   fields['Total de hojas'] = String(totalSheets);
   fields['TOTAL'] = money(order.total);
+  fields['Pago'] = `Pendiente — seña (${pct}%) ${money(deposit(order.total))} o total ${money(order.total)}. No está confirmado hasta recibir el pago.`;
   fields['Panel (descargar archivos)'] = `${siteUrl}/panel?pedido=${code(order.number)}`;
 
   const results = await Promise.all(to.map((addr: string) =>

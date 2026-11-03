@@ -111,7 +111,7 @@ export default function Printer3D({ children, actions, note, onClose }: Props) {
 
         <div className={`pr-actions${phase === 'done' ? ' is-visible' : ''}`} ref={actionsRef}>
           <p className="pr-status" aria-live="polite">
-            {phase === 'warm' ? 'Calentando la impresora…' : phase === 'printing' ? 'Imprimiendo tu ticket…' : '¡Listo! Tu pedido quedó registrado.'}
+            {phase === 'warm' ? 'Calentando la impresora…' : phase === 'printing' ? 'Imprimiendo tu ticket…' : '¡Pedido registrado! Para confirmarlo falta el pago.'}
           </p>
           {phase === 'done' && note}
           <div className="pr-buttons">{actions}</div>
