@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BUSINESS, formatMoney } from '../lib/config';
+import { BUSINESS, formatMoney, hoursText } from '../lib/config';
 import { openStatus } from '../lib/hours';
 import { useLive } from '../lib/settings';
 import { GirlStage, type StageBounds } from './GirlStage';
@@ -65,8 +65,8 @@ export default function Hero() {
               {settings.bulk.enabled && <p className="flyer-card__row small"><span>Doble faz desde {settings.bulk.minSheets} hojas</span><b>{formatMoney(settings.bulk.dobleSheetPrice)}</b></p>}
               <span className="rule" />
               <p className="flyer-card__k">Horarios de atención</p>
-              <p className="flyer-card__row small"><span>{settings.hours.weekdays.label}</span><b>{settings.hours.weekdays.open} a {settings.hours.weekdays.close}</b></p>
-              <p className="flyer-card__row small"><span>{settings.hours.weekend.label}</span><b>{settings.hours.weekend.open} a {settings.hours.weekend.close}</b></p>
+              <p className="flyer-card__row small"><span>{settings.hours.weekdays.label}</span><b className="flyer-card__hours">{hoursText(settings.hours.weekdays, ' a ', '\n')}</b></p>
+              <p className="flyer-card__row small"><span>{settings.hours.weekend.label}</span><b className="flyer-card__hours">{hoursText(settings.hours.weekend, ' a ', '\n')}</b></p>
               <span className="rule" />
               <a className="flyer-card__wa" href={`https://wa.me/${BUSINESS.whatsappIntl}`} target="_blank" rel="noopener noreferrer">
                 <WhatsAppGlyph /> {BUSINESS.whatsappDisplay}

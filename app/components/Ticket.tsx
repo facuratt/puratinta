@@ -1,4 +1,4 @@
-import { addressLine, BUSINESS, depositFor, formatMoney, notConfirmedText, PAYMENT_LABELS, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from '../lib/config';
+import { addressLine, BUSINESS, hoursText, depositFor, formatMoney, notConfirmedText, PAYMENT_LABELS, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from '../lib/config';
 import { orderCode, orderFiles, type Order } from '../lib/supabase';
 
 type Props = {
@@ -111,8 +111,8 @@ export default function Ticket({ order, variant, settings, className = '' }: Pro
             : <p>Coordiná el pago de la seña o del total por WhatsApp al <b>{BUSINESS.whatsappDisplay}</b>.</p>}
           <p>Te avisamos por WhatsApp cuando esté listo para retirar. Mostrá este ticket o decí tu número de pedido.</p>
           <p className="ticket__hours">
-            {settings.hours.weekdays.label} {settings.hours.weekdays.open} a {settings.hours.weekdays.close}<br />
-            {settings.hours.weekend.label} {settings.hours.weekend.open} a {settings.hours.weekend.close}
+            {settings.hours.weekdays.label} {hoursText(settings.hours.weekdays)}<br />
+            {settings.hours.weekend.label} {hoursText(settings.hours.weekend)}
           </p>
           <p>Retiro en {addressLine}</p>
           <p>WhatsApp {BUSINESS.whatsappDisplay} · IG @{BUSINESS.instagram}</p>

@@ -367,6 +367,7 @@ html.has-announcement .hero__navspace { height: calc(var(--nav-h) + 42px); }
 .flyer-card__row b { font-size: 22px; font-weight: 800; font-stretch: 80%; }
 .flyer-card__row.small b { font-size: 15px; font-weight: 700; font-stretch: 100%; }
 .flyer-card__row.small span { font-size: 13px; }
+.flyer-card__hours, .footer__hours, .cx__hours { white-space: pre-line; text-align: right; }
 .flyer-card .rule { display: block; height: 0; margin: 14px 0; border-top: 1.5px dashed rgba(63, 35, 31, .3); }
 .flyer-card__wa { display: inline-flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; font-stretch: 80%; }
 .flyer-card__wa:hover { color: var(--marmalade); }
@@ -587,10 +588,13 @@ html.has-announcement .hero__navspace { height: calc(var(--nav-h) + 42px); }
 .hours__list dt { font-size: clamp(1.05rem, 1.5vw, 1.35rem); font-weight: 650; }
 .hours__list dd { margin: 0; font-size: clamp(2rem, 3.6vw, 3.4rem); font-weight: 800; font-stretch: 75%; letter-spacing: -.03em; line-height: 1; }
 .hours__list dd span { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: .7em; }
+.hours__list dd { text-align: right; }
+.hours__list dd .hours__shift { display: block; font-family: inherit; font-style: normal; font-weight: inherit; font-size: 1em; }
+.hours__list dd .hours__shift + .hours__shift { margin-top: 4px; }
 .week { display: grid; gap: 6px; margin: 0 0 28px; padding: 18px; border-radius: var(--r-lg); background: rgba(255, 244, 239, .5); border: 1px solid rgba(63, 35, 31, .1); }
 .week__row { display: grid; grid-template-columns: 40px 1fr 94px; align-items: center; gap: 12px; font-size: 13px; }
 .week__d { font-weight: 700; }
-.week__h { text-align: right; font-variant-numeric: tabular-nums; opacity: .75; }
+.week__h { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; text-align: right; font-variant-numeric: tabular-nums; opacity: .75; }
 .week__bar { position: relative; height: 10px; border-radius: 6px; background: rgba(63, 35, 31, .1); }
 .week__bar i { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: var(--cocoa); }
 .week__row.is-today .week__d { color: var(--marmalade); }
@@ -1058,6 +1062,8 @@ html.has-announcement .phead { padding-top: calc(var(--nav-h) + 110px); }
 .hint { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
 .hedit { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; align-items: end; }
 .hedit label { display: grid; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); }
+.hedit__x { justify-self: start; align-self: end; min-height: 44px; }
+.hedit + .hedit { margin-top: 14px; padding-top: 14px; border-top: 1.5px dashed var(--line); }
 .switch { display: flex; align-items: center; gap: 12px; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; pointer-events: none; }
 .switch__track { position: relative; flex: none; width: 52px; height: 30px; border-radius: 999px; background: var(--paper-3); transition: background .25s; }

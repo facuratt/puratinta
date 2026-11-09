@@ -331,6 +331,15 @@ function HoursEditor({ value, onChange }: { value: DayHours; onChange: (v: DayHo
       <input className="hedit__label" value={value.label} onChange={(e) => onChange({ ...value, label: e.target.value })} aria-label="Días" />
       <label>Abre<input type="time" value={value.open} onChange={(e) => onChange({ ...value, open: e.target.value })} /></label>
       <label>Cierra<input type="time" value={value.close} onChange={(e) => onChange({ ...value, close: e.target.value })} /></label>
+      {value.open2 !== undefined ? (
+        <>
+          <label>Vuelve a abrir<input type="time" value={value.open2} onChange={(e) => onChange({ ...value, open2: e.target.value })} /></label>
+          <label>Cierra<input type="time" value={value.close2 ?? ''} onChange={(e) => onChange({ ...value, close2: e.target.value })} /></label>
+          <button type="button" className="btn btn--line btn--sm hedit__x" onClick={() => onChange({ label: value.label, open: value.open, close: value.close })}>Quitar segundo turno</button>
+        </>
+      ) : (
+        <button type="button" className="btn btn--line btn--sm hedit__x" onClick={() => onChange({ ...value, open2: '', close2: '' })}>+ Agregar segundo turno</button>
+      )}
     </div>
   );
 }
@@ -346,7 +355,8 @@ function PricesPane({ say }: { say: (t: string) => void }) {
   async function save() {
     setBusy(true);
     const r = await Promise.all((['simple', 'doble'] as const).map((s) => supabase.from('prices').update({ price_per_sheet: Math.max(0, Math.round(prices[s])) }).eq('sides', s)));
-    const e2 = await saveSettings((s) => ({ ...s, hours, bulk: { enabled: bulk.enabled, minSheets: Math.max(1, Math.round(bulk.minSheets)), dobleSheetPrice: Math.max(0, Math.round(bulk.dobleSheetPrice)) } }));
+    const oneShift = (d: DayHours): DayHours => (d.open2 && d.close2 ? d : { label: d.label, open: d.open, close: d.close });
+    const e2 = await saveSettings((s) => ({ ...s, hours: { weekdays: oneShift(hours.weekdays), weekend: oneShift(hours.weekend) }, bulk: { enabled: bulk.enabled, minSheets: Math.max(1, Math.round(bulk.minSheets)), dobleSheetPrice: Math.max(0, Math.round(bulk.dobleSheetPrice)) } }));
     setBusy(false);
     if (r.some((x) => x.error) || e2) { say('No se pudo guardar'); play('error'); } else { say('Guardado: la web ya muestra los cambios'); play('ding'); }
   }

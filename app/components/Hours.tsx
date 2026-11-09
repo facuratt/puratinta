@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BUSINESS, whatsappUrl } from '../lib/config';
+import { BUSINESS, shifts, whatsappUrl, type DayHours } from '../lib/config';
 import { openStatus } from '../lib/hours';
 import { useScrollScene } from '../lib/scroll';
 import { useLive } from '../lib/settings';
@@ -43,8 +43,14 @@ export default function Hours() {
           <p className={`status-pill status-pill--lg${status.open ? ' is-open' : ''}`} data-reveal><i />{status.label} · {status.detail}</p>
         )}
         <dl className="hours__list" data-reveal>
-          <div><dt>{weekdays.label}</dt><dd>{weekdays.open} <span>a</span> {weekdays.close}</dd></div>
-          <div><dt>{weekend.label}</dt><dd>{weekend.open} <span>a</span> {weekend.close}</dd></div>
+          {[weekdays, weekend].map((d: DayHours) => (
+            <div key={d.label}>
+              <dt>{d.label}</dt>
+              <dd>{shifts(d).map(([o, c], i) => (
+                <span key={i} className="hours__shift">{i > 0 && <span>y</span>} {o} <span>a</span> {c}</span>
+              ))}</dd>
+            </div>
+          ))}
         </dl>
 
         <div className="week" data-reveal aria-label="Horario semanal">
@@ -55,10 +61,10 @@ export default function Hours() {
               <div key={d} className={`week__row${today ? ' is-today' : ''}`}>
                 <span className="week__d">{d}</span>
                 <span className="week__bar">
-                  <i style={{ left: `${toPct(h.open)}%`, width: `${toPct(h.close) - toPct(h.open)}%` }} />
+                  {shifts(h).map(([o, c]) => <i key={o} style={{ left: `${toPct(o)}%`, width: `${toPct(c) - toPct(o)}%` }} />)}
                   {today && now && <b style={{ left: `${now.pct}%` }} title="Ahora" />}
                 </span>
-                <span className="week__h">{h.open}–{h.close}</span>
+                <span className="week__h">{shifts(h).map(([o, c]) => <span key={o}>{o}–{c}</span>)}</span>
               </div>
             );
           })}

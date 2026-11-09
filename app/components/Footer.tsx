@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { addressLine, BUSINESS, formatMoney, whatsappUrl } from '../lib/config';
+import { addressLine, BUSINESS, formatMoney, hoursText, whatsappUrl } from '../lib/config';
 import { openStatus } from '../lib/hours';
 import { useLive } from '../lib/settings';
 import { ArrowUpRight, InstagramGlyph, Lock, Pin, Star, WhatsAppGlyph } from './icons';
@@ -43,8 +43,8 @@ export default function Footer() {
         </nav>
         <div className="footer__col">
           <h3>Horarios de atención</h3>
-          <p><span>{settings.hours.weekdays.label}</span><b>{settings.hours.weekdays.open} a {settings.hours.weekdays.close}</b></p>
-          <p><span>{settings.hours.weekend.label}</span><b>{settings.hours.weekend.open} a {settings.hours.weekend.close}</b></p>
+          <p><span>{settings.hours.weekdays.label}</span><b className="footer__hours">{hoursText(settings.hours.weekdays, ' a ', '\n')}</b></p>
+          <p><span>{settings.hours.weekend.label}</span><b className="footer__hours">{hoursText(settings.hours.weekend, ' a ', '\n')}</b></p>
           {status && <p className={`status-pill${status.open ? ' is-open' : ''}`}><i />{status.label} · {status.detail}</p>}
           <h3 className="mt">Fotocopias B/N</h3>
           <p><span>Simple faz</span><b>{formatMoney(prices.simple)}</b></p>

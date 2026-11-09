@@ -28,7 +28,15 @@ export type Sides = 'simple' | 'doble';
 export type Prices = Record<Sides, number>;
 export const DEFAULT_PRICES: Prices = { simple: 100, doble: 150 };
 
-export type DayHours = { label: string; open: string; close: string };
+/** Horario de un grupo de días. `open2`/`close2` es un segundo turno opcional (ej.: cierra al mediodía y vuelve a la noche). */
+export type DayHours = { label: string; open: string; close: string; open2?: string; close2?: string };
+
+/** Turnos de un día, en orden: [[abre, cierra], [abre2, cierra2]?]. */
+export const shifts = (d: DayHours): [string, string][] =>
+  d.open2 && d.close2 ? [[d.open, d.close], [d.open2, d.close2]] : [[d.open, d.close]];
+
+/** "06:30 a 13:00 y 21:30 a 22:30" */
+export const hoursText = (d: DayHours, sep = ' a ', join = ' y ') => shifts(d).map(([o, c]) => `${o}${sep}${c}`).join(join);
 export type SiteSettings = {
   ordersOpen: boolean;
   maintenance: boolean;
@@ -47,7 +55,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   maintenance: false,
   announcement: { enabled: false, text: '' },
   hours: {
-    weekdays: { label: 'Lunes a viernes', open: '06:30', close: '22:30' },
+    weekdays: { label: 'Lunes a viernes', open: '06:30', close: '13:00', open2: '21:30', close2: '22:30' },
     weekend: { label: 'Sábados y domingos', open: '10:00', close: '22:30' },
   },
   mercadoPagoAlias: '',

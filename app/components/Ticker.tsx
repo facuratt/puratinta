@@ -1,6 +1,6 @@
 'use client';
 
-import { formatMoney } from '../lib/config';
+import { formatMoney, hoursText } from '../lib/config';
 import { useLive } from '../lib/settings';
 
 /** Marquesina inferior (de pouterby). Cada mitad repite la lista para cubrir pantallas anchas. */
@@ -13,8 +13,8 @@ export default function Ticker({ tone = 'ink' }: { tone?: 'ink' | 'paper' | 'vio
     ...(settings.bulk.enabled ? [`Desde ${settings.bulk.minSheets} hojas doble faz ${formatMoney(settings.bulk.dobleSheetPrice / 2)} la carilla`] : []),
     'Subí tus archivos',
     'Retiralos impresos',
-    `${settings.hours.weekdays.label} ${settings.hours.weekdays.open} a ${settings.hours.weekdays.close}`,
-    `${settings.hours.weekend.label} ${settings.hours.weekend.open} a ${settings.hours.weekend.close}`,
+    `${settings.hours.weekdays.label} ${hoursText(settings.hours.weekdays)}`,
+    `${settings.hours.weekend.label} ${hoursText(settings.hours.weekend)}`,
     'WhatsApp 2972418448',
   ];
   const half = [...words, ...words];

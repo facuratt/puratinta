@@ -4,7 +4,7 @@ import Link from 'next/link';
 import QRCode from 'qrcode';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Icon3D, Lock, WhatsAppGlyph, Copy, Check, Pin, Star } from '../components/icons';
-import { addressLine, BUSINESS, whatsappUrl } from '../lib/config';
+import { addressLine, BUSINESS, hoursText, whatsappUrl } from '../lib/config';
 import { openStatus } from '../lib/hours';
 import { useLive } from '../lib/settings';
 import { play } from '../lib/sound';
@@ -70,8 +70,8 @@ export default function ContactExtras() {
 
       <div className="cx__card" data-reveal style={{ ['--d' as string]: 2 }}>
         <div className="cx__title"><Icon3D name="clock" size={72} /><h2>Horarios de atención</h2></div>
-        <p className="cx__row"><span>{settings.hours.weekdays.label}</span><b>{settings.hours.weekdays.open} a {settings.hours.weekdays.close}</b></p>
-        <p className="cx__row"><span>{settings.hours.weekend.label}</span><b>{settings.hours.weekend.open} a {settings.hours.weekend.close}</b></p>
+        <p className="cx__row"><span>{settings.hours.weekdays.label}</span><b className="cx__hours">{hoursText(settings.hours.weekdays, ' a ', '\n')}</b></p>
+        <p className="cx__row"><span>{settings.hours.weekend.label}</span><b className="cx__hours">{hoursText(settings.hours.weekend, ' a ', '\n')}</b></p>
         {status && <p className={`status-pill${status.open ? ' is-open' : ''}`}><i />{status.label} · {status.detail}</p>}
       </div>
 
