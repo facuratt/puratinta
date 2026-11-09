@@ -4,7 +4,11 @@ import OrderForm from '../components/OrderForm';
 import PageHead from '../components/PageHead';
 import TopBar from '../components/TopBar';
 
-export const metadata: Metadata = { title: 'Hacer pedido — Pura Tinta' };
+export const metadata: Metadata = {
+  title: 'Hacer pedido online',
+  description: 'Subí tus PDF o fotos, elegí copias y simple o doble faz, y retiralos impresos en Belgrano 467, Cipolletti. Te avisamos por WhatsApp cuando están listos.',
+  alternates: { canonical: '/pedido' },
+};
 
 export default function PedidoPage() {
   return (

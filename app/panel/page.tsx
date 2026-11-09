@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Check, Icon3D, LogOut, Search, WhatsAppGlyph, Download, Printer, Trash } from '../components/icons';
 import Ticket from '../components/Ticket';
-import { DEFAULT_SETTINGS, depositFor, formatMoney, PAYMENT_LABELS, STATUS_LABELS, type DayHours, type PaymentStatus, type SiteSettings } from '../lib/config';
+import { addressLine, BUSINESS, DEFAULT_SETTINGS, depositFor, formatMoney, PAYMENT_LABELS, STATUS_LABELS, type DayHours, type PaymentStatus, type SiteSettings } from '../lib/config';
 import { invalidateLive, useLive } from '../lib/settings';
 import { play } from '../lib/sound';
 import { BUCKET, orderCode, orderFiles, supabase, type Order } from '../lib/supabase';
@@ -124,9 +124,13 @@ export default function PanelPage() {
     const pay = o.payment_status ?? 'pendiente';
     const dep = depositFor(o.total, s.depositPct);
     const alias = s.mercadoPagoAlias.trim();
+    if (o.status === 'entregado') {
+      return `¡Gracias por elegir Pura Tinta, ${o.customer_name}! 🖨️ Si te gustó cómo quedó tu pedido, nos ayudaría muchísimo una reseña en Google (es un minuto): ${BUSINESS.reviewUrl}`;
+    }
     if (o.status === 'listo') {
-      return `Hola ${o.customer_name}! Tu pedido ${orderCode(o.number)} de Pura Tinta ya está listo para retirar. Total: ${formatMoney(o.total)}.`
-        + (pay === 'sena' ? ` Te queda por abonar ${formatMoney(Math.max(0, o.total - dep))}.` : pay === 'pendiente' ? ` Recordá que todavía no recibimos el pago.` : '');
+      return `Hola ${o.customer_name}! Tu pedido ${orderCode(o.number)} de Pura Tinta ya está listo para retirar en ${addressLine}. Total: ${formatMoney(o.total)}.`
+        + (pay === 'sena' ? ` Te queda por abonar ${formatMoney(Math.max(0, o.total - dep))}.` : pay === 'pendiente' ? ` Recordá que todavía no recibimos el pago.` : '')
+        + `\n\nSi te gusta cómo quedó, nos ayudás muchísimo con una reseña en Google ⭐ ${BUSINESS.reviewUrl}`;
     }
     if (pay === 'pendiente') {
       return `Hola ${o.customer_name}! Recibimos tu pedido ${orderCode(o.number)} de Pura Tinta (${formatMoney(o.total)}). `
@@ -277,7 +281,7 @@ export default function PanelPage() {
                     <button className="btn btn--ink btn--sm" onClick={() => printTicket(o.id)}><Printer /> Imprimir ticket</button>
                     <a className="btn btn--wa btn--sm" target="_blank" rel="noopener noreferrer"
                       href={customerWhatsapp(o.customer_phone, customerMessage(o))}>
-                      <WhatsAppGlyph /> WhatsApp al cliente
+                      <WhatsAppGlyph /> {o.status === 'entregado' ? 'Pedir reseña por WhatsApp' : 'WhatsApp al cliente'}
                     </a>
                   </div>
                 </div>

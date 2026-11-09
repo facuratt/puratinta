@@ -10,7 +10,19 @@ export const BUSINESS = {
   whatsappIntl: '5492972418448',
   instagram: 'impresiones.cipo.puratinta',
   instagramUrl: 'https://www.instagram.com/impresiones.cipo.puratinta',
+  // Local (perfil de Google Maps "Impresiones y fotocopias Pura Tinta").
+  street: 'Belgrano 467',
+  city: 'Cipolletti',
+  region: 'Río Negro',
+  postalCode: 'R8324',
+  geo: { lat: -38.9358077, lng: -67.9979112 },
+  googlePlaceId: 'ChIJpXCFjlIxCpYRVmui-hNAup8',
+  mapsUrl: 'https://maps.app.goo.gl/hv41L9sutJuzu99f7',
+  /** Abre directo la ventana para dejar una reseña en Google. */
+  reviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJpXCFjlIxCpYRVmui-hNAup8',
 };
+
+export const addressLine = `${BUSINESS.street}, ${BUSINESS.city}`;
 
 export type Sides = 'simple' | 'doble';
 export type Prices = Record<Sides, number>;

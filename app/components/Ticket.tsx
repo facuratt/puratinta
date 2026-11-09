@@ -1,4 +1,4 @@
-import { BUSINESS, depositFor, formatMoney, notConfirmedText, PAYMENT_LABELS, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from '../lib/config';
+import { addressLine, BUSINESS, depositFor, formatMoney, notConfirmedText, PAYMENT_LABELS, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from '../lib/config';
 import { orderCode, orderFiles, type Order } from '../lib/supabase';
 
 type Props = {
@@ -114,6 +114,7 @@ export default function Ticket({ order, variant, settings, className = '' }: Pro
             {settings.hours.weekdays.label} {settings.hours.weekdays.open} a {settings.hours.weekdays.close}<br />
             {settings.hours.weekend.label} {settings.hours.weekend.open} a {settings.hours.weekend.close}
           </p>
+          <p>Retiro en {addressLine}</p>
           <p>WhatsApp {BUSINESS.whatsappDisplay} · IG @{BUSINESS.instagram}</p>
           <Barcode seed={code} />
           <p className="ticket__thanks">¡gracias por elegir Pura Tinta!</p>

@@ -5,7 +5,11 @@ import PageHead from '../components/PageHead';
 import TopBar from '../components/TopBar';
 import ContactExtras from './ContactExtras';
 
-export const metadata: Metadata = { title: 'Contacto — Pura Tinta' };
+export const metadata: Metadata = {
+  title: 'Contacto y cómo llegar',
+  description: 'Estamos en Belgrano 467, Cipolletti. Escribinos por WhatsApp al 2972418448, mirá los horarios y dejanos tu reseña en Google.',
+  alternates: { canonical: '/contacto' },
+};
 
 export default function ContactoPage() {
   return (

@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import QRCode from 'qrcode';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Icon3D, Lock, WhatsAppGlyph, Copy, Check } from '../components/icons';
-import { BUSINESS, whatsappUrl } from '../lib/config';
+import { Icon3D, Lock, WhatsAppGlyph, Copy, Check, Pin, Star } from '../components/icons';
+import { addressLine, BUSINESS, whatsappUrl } from '../lib/config';
 import { openStatus } from '../lib/hours';
 import { useLive } from '../lib/settings';
 import { play } from '../lib/sound';
@@ -39,6 +39,18 @@ export default function ContactExtras() {
 
   return (
     <section className="cx">
+      <div className="cx__card cx__where" data-reveal>
+        <div className="cx__whereText">
+          <p className="eyebrow">Dónde estamos</p>
+          <h2>{BUSINESS.street}, <em>{BUSINESS.city}</em></h2>
+          <p className="cx__fine">{BUSINESS.region}. Hacé el pedido online y lo retirás acá, impreso.</p>
+        </div>
+        <div className="cx__whereBtns">
+          <a className="btn btn--ink" href={BUSINESS.mapsUrl} target="_blank" rel="noopener noreferrer" data-sfx="pop"><Pin /> Cómo llegar</a>
+          <a className="btn btn--line" href={BUSINESS.reviewUrl} target="_blank" rel="noopener noreferrer" data-sfx="pop"><Star /> Dejanos tu reseña en Google</a>
+        </div>
+      </div>
+
       <form className="cx__card cx__form" onSubmit={send} data-reveal>
         <div className="cx__title"><Icon3D name="pen" size={72} /><h2>Mandanos un mensaje</h2></div>
         <label className="field">Tu nombre<input value={msg.name} onChange={(e) => setMsg({ ...msg, name: e.target.value })} maxLength={80} autoComplete="name" placeholder="Cómo te llamás" /></label>
@@ -52,6 +64,7 @@ export default function ContactExtras() {
         <div className="cx__qrs">
           <QR value={`https://wa.me/${BUSINESS.whatsappIntl}`} label={`WhatsApp ${BUSINESS.whatsappDisplay}`} />
           <QR value={BUSINESS.instagramUrl} label={`Instagram @${BUSINESS.instagram}`} />
+          <QR value={BUSINESS.reviewUrl} label="Reseña en Google" />
         </div>
       </div>
 

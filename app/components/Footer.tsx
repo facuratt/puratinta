@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { BUSINESS, formatMoney, whatsappUrl } from '../lib/config';
+import { addressLine, BUSINESS, formatMoney, whatsappUrl } from '../lib/config';
 import { openStatus } from '../lib/hours';
 import { useLive } from '../lib/settings';
-import { ArrowUpRight, InstagramGlyph, Lock, WhatsAppGlyph } from './icons';
+import { ArrowUpRight, InstagramGlyph, Lock, Pin, Star, WhatsAppGlyph } from './icons';
 import { SoundToggle } from './TopBar';
 
 export default function Footer() {
@@ -55,13 +55,15 @@ export default function Footer() {
           <h3>Contacto</h3>
           <a href={whatsappUrl('Hola Pura Tinta! 👋')} target="_blank" rel="noopener noreferrer" className="footer__social"><WhatsAppGlyph /> {BUSINESS.whatsappDisplay}</a>
           <a href={BUSINESS.instagramUrl} target="_blank" rel="noopener noreferrer" className="footer__social"><InstagramGlyph /> @{BUSINESS.instagram}</a>
+          <a href={BUSINESS.mapsUrl} target="_blank" rel="noopener noreferrer" className="footer__social"><Pin /> {addressLine}</a>
+          <a href={BUSINESS.reviewUrl} target="_blank" rel="noopener noreferrer" className="footer__social"><Star /> Dejanos tu reseña en Google</a>
           <h3 className="mt">Sonido</h3>
           <div className="footer__prefs"><SoundToggle className="icon-btn--label" /></div>
         </div>
       </div>
 
       <div className="footer__base">
-        <span>© {new Date().getFullYear()} Impresiones Pura Tinta · impresiones en blanco y negro</span>
+        <span>© {new Date().getFullYear()} Impresiones Pura Tinta · fotocopias e impresiones en blanco y negro · {BUSINESS.city}, {BUSINESS.region}</span>
         <Link href="/ingresar" className="footer__staff"><Lock /> Equipo</Link>
       </div>
     </footer>

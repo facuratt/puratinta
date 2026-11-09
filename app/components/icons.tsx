@@ -29,6 +29,8 @@ export const Clock = (p: P) => (<svg viewBox="0 0 24 24" width="18" height="18" 
 export const Search = (p: P) => (<svg viewBox="0 0 24 24" width="18" height="18" {...line} {...p}><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></svg>);
 export const Bolt = (p: P) => (<svg viewBox="0 0 24 24" width="18" height="18" {...line} {...p}><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z" /></svg>);
 export const LogOut = (p: P) => (<svg viewBox="0 0 24 24" width="18" height="18" {...line} {...p}><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10" /></svg>);
+export const Pin = (p: P) => (<svg viewBox="0 0 24 24" width="18" height="18" {...line} {...p}><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.4" /></svg>);
+export const Star = (p: P) => (<svg viewBox="0 0 24 24" width="18" height="18" {...line} {...p}><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" /></svg>);
 export const Eye = (p: P) => (<svg viewBox="0 0 24 24" width="18" height="18" {...line} {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>);
 
 export const WhatsAppGlyph = (p: P) => (

@@ -1,6 +1,6 @@
 'use client';
 
-import { BUSINESS, depositFor, formatMoney, notConfirmedText, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from './config';
+import { addressLine, BUSINESS, depositFor, formatMoney, notConfirmedText, sheetsFor, sidesLabel, STATUS_LABELS, type SiteSettings } from './config';
 import { orderCode, orderFiles, type Order } from './supabase';
 
 // Dibuja el ticket en un canvas para descargarlo como imagen (sirve para mandarlo por WhatsApp).
@@ -93,6 +93,7 @@ export async function ticketBlob(order: Order, settings: SiteSettings): Promise<
     text('Te avisamos por WhatsApp cuando esté listo para retirar.', 17, 400, 'center');
     text(`${settings.hours.weekdays.label} ${settings.hours.weekdays.open} a ${settings.hours.weekdays.close}`, 17, 400, 'center');
     text(`${settings.hours.weekend.label} ${settings.hours.weekend.open} a ${settings.hours.weekend.close}`, 17, 400, 'center');
+    text(`Retiro en ${addressLine}`, 16, 400, 'center');
     text(`WhatsApp ${BUSINESS.whatsappDisplay} · IG @${BUSINESS.instagram}`, 16, 400, 'center');
     y += 8;
     text('¡gracias por elegir Pura Tinta!', 20, 700, 'center');
